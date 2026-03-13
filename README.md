@@ -59,7 +59,7 @@ Build an AI Candidate Analyzer that:
 - "Flag any concerns from the background check data."
 - "Compare candidates A and B for the Senior Backend Engineer role."
 
-### Phase 4: Security, Testing & Evaluation (Weeks 9-10)
+### Phase 4: Security, Testing & Evaluation
 **Goal**: Harden the system and validate correctness
 
 **Tasks:**
