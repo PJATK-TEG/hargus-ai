@@ -1,5 +1,7 @@
 # AI Candidate Analyzer - Hargus AI
 
+![HARGUS-AI](./docs/hero.png)
+
 ## What We'll Build
 An AI-powered candidate analysis system that uses RAG, GraphRAG, and a multi-agent MCP architecture to holistically profile job candidates. We will solve a real HR challenge: aggregating and reasoning over heterogeneous candidate data — CVs, interview transcripts, and publicly available background information — to produce structured, explainable insights.
 
