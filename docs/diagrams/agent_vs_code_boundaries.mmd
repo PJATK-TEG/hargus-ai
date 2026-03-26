@@ -1,0 +1,18 @@
+flowchart TB
+    subgraph Deterministic Services
+        D1[Fetch files from DB / object storage]
+        D2[Parse document metadata]
+        D3[Store chunks embeddings facts]
+        D4[Run scoring formula]
+        D5[Render PDF from template]
+        D6[Audit logging]
+    end
+
+    subgraph Agentic Services
+        A1[Interpret job description]
+        A2[Extract candidate facts from messy text]
+        A3[Summarize interviews]
+        A4[Find contradictions and gaps]
+        A5[Synthesize evidence-backed narrative]
+        A6[Draft human-readable report]
+    end

@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant UI as Recruiter UI
+    participant API as FastAPI
+    participant WF as Temporal Workflow
+    participant OBJ as Object Storage
+    participant PARSE as Parsing Service
+    participant AG as Agent Workers
+    participant DB as PostgreSQL
+    participant VDB as Vector DB
+    participant PDF as PDF Service
+
+    UI->>API: Start candidate-job analysis
+    API->>DB: Create workflow_run
+    API->>WF: Start workflow
+    WF->>OBJ: Load candidate files
+    WF->>PARSE: Normalize documents
+    PARSE->>DB: Save parsed text/chunks metadata
+    PARSE->>VDB: Save embeddings
+    WF->>AG: Run JD analysis agent
+    WF->>AG: Run candidate extraction agent
+    WF->>AG: Run interview insight agent
+    WF->>AG: Run consistency/risk agent
+    AG->>DB: Save structured facts and evidence
+    WF->>DB: Load facts
+    WF->>DB: Save deterministic scores
+    WF->>AG: Draft structured report
+    WF->>PDF: Render PDF
+    PDF->>OBJ: Store PDF
+    PDF->>DB: Save report metadata
+    WF->>DB: Mark workflow complete
+    API-->>UI: Report ready

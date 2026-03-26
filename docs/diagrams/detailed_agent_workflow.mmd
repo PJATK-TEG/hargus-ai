@@ -1,0 +1,57 @@
+flowchart TD
+    START([Start analysis request])
+
+    A1[Load candidate metadata from DB]
+    A2[Load candidate files from object storage]
+    A3[Load current job description]
+    A4[Create workflow run record]
+
+    B1[Document normalization<br/>parse CV transcripts notes]
+    B2[Chunking + metadata extraction]
+    B3[Index chunks into vector storage]
+
+    C1[Job Description Agent<br/>extract rubric]
+    C2[Candidate Extraction Agent<br/>extract skills experience education domain signals]
+    C3[Interview Insight Agent<br/>summarize interview signals communication risks strengths]
+    C4[Consistency Agent<br/>detect contradictions gaps suspicious timeline issues]
+    C5[Evidence Retrieval Agent<br/>map claims to supporting evidence]
+    C6[Background Check Agent<br/>separate policy-controlled branch]
+
+    D1[Fact consolidation layer<br/>merge agent outputs]
+    D2[Schema validation / confidence checks]
+    D3[Human review required?]
+
+    E1[Deterministic scoring engine]
+    E2[Recommendation engine<br/>strong match / possible / weak / manual review]
+
+    F1[Report Drafting Agent]
+    F2[Report Verification Agent<br/>unsupported claims completeness tone]
+    F3[Render HTML]
+    F4[Generate PDF]
+    F5[Store PDF and report snapshot]
+
+    END([Completed])
+
+    START --> A1 --> A2 --> A3 --> A4
+    A4 --> B1 --> B2 --> B3
+
+    B3 --> C1
+    B3 --> C2
+    B3 --> C3
+    B3 --> C4
+    B3 --> C5
+    B3 --> C6
+
+    C1 --> D1
+    C2 --> D1
+    C3 --> D1
+    C4 --> D1
+    C5 --> D1
+    C6 --> D1
+
+    D1 --> D2 --> D3
+    D3 -->|No| E1
+    D3 -->|Yes| E2
+
+    E1 --> E2
+    E2 --> F1 --> F2 --> F3 --> F4 --> F5 --> END

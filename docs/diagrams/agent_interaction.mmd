@@ -1,0 +1,84 @@
+flowchart LR
+    subgraph Inputs
+        CV[CV / Resume]
+        TR[Interview transcripts]
+        RN[Recruiter notes]
+        CN[Candidate notes / extra text]
+        JD[Job description]
+    end
+
+    subgraph Preprocessing
+        P1[Parser / Normalizer]
+        P2[Chunker]
+        P3[Embedding / Indexer]
+    end
+
+    subgraph Agents
+        JDA[Job Description Agent]
+        CEA[Candidate Extraction Agent]
+        IIA[Interview Insight Agent]
+        CRA[Consistency / Risk Agent]
+        ERA[Evidence Retrieval Agent]
+        BGA[Background Check Agent]
+        RVA[Report Verification Agent]
+        RDA[Report Drafting Agent]
+    end
+
+    subgraph Structured Outputs
+        JR[Job rubric]
+        CF[Candidate fact sheet]
+        IFS[Interview findings]
+        RF[Risk flags]
+        EV[Evidence map]
+        BGR[Background report]
+    end
+
+    subgraph Deterministic Layer
+        CONS[Consolidation + validation]
+        SCORE[Scoring engine]
+        REC[Recommendation engine]
+    end
+
+    subgraph Reporting
+        REP[Structured report model]
+        HTML[HTML template]
+        PDF[PDF file]
+    end
+
+    CV --> P1
+    TR --> P1
+    RN --> P1
+    CN --> P1
+    JD --> P1
+
+    P1 --> P2 --> P3
+
+    JD --> JDA
+    P3 --> JDA
+    P3 --> CEA
+    P3 --> IIA
+    P3 --> CRA
+    P3 --> ERA
+    P3 --> BGA
+
+    JDA --> JR
+    CEA --> CF
+    IIA --> IFS
+    CRA --> RF
+    ERA --> EV
+    BGA --> BGR
+
+    JR --> CONS
+    CF --> CONS
+    IFS --> CONS
+    RF --> CONS
+    EV --> CONS
+    BGR --> CONS
+
+    CONS --> SCORE --> REC
+    CONS --> RDA
+    REC --> RDA
+
+    RDA --> REP
+    REP --> RVA
+    RVA --> HTML --> PDF

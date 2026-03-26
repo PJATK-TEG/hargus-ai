@@ -1,0 +1,18 @@
+flowchart TD
+    O[Workflow Orchestrator]
+
+    J[Job Agent]
+    C[Candidate Agent]
+    I[Interview Agent]
+    R[Risk / Consistency Agent]
+    W[Report Agent]
+
+    O --> J
+    O --> C
+    O --> I
+    O --> R
+    J --> O
+    C --> O
+    I --> O
+    R --> O
+    O --> W

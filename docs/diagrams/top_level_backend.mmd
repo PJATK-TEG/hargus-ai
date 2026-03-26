@@ -1,0 +1,59 @@
+flowchart TB
+    U[Recruiter / HR UI / Admin UI]
+    API[FastAPI API Gateway<br/>Auth RBAC Request Validation]
+    ORCH[Workflow Orchestrator<br/>Temporal]
+    DB[(PostgreSQL<br/>system of record)]
+    OBJ[(S3 / MinIO<br/>binary storage)]
+    VDB[(pgvector or Qdrant<br/>vector storage)]
+    CACHE[(Redis<br/>cache / locks / rate limits)]
+    OBS[Observability<br/>OpenTelemetry + Logs + Metrics]
+    PDF[Report Renderer<br/>HTML templates + WeasyPrint]
+    LLM[LLM / Agent Workers<br/>LangGraph or internal agent runtime]
+    PARSE[Document Processing Service<br/>Docling / Unstructured / OCR if needed]
+    BG[Background Check Service<br/>policy-controlled integrations]
+    RULES[Deterministic Scoring / Policy Engine]
+    SEARCH[Evidence Retrieval Service]
+    NOTIFY[Notifications / Webhooks]
+
+    U --> API
+    API --> DB
+    API --> OBJ
+    API --> ORCH
+    API --> CACHE
+
+    ORCH --> DB
+    ORCH --> OBJ
+    ORCH --> PARSE
+    ORCH --> LLM
+    ORCH --> SEARCH
+    ORCH --> BG
+    ORCH --> RULES
+    ORCH --> PDF
+    ORCH --> NOTIFY
+
+    PARSE --> OBJ
+    PARSE --> DB
+    PARSE --> VDB
+
+    LLM --> DB
+    LLM --> OBJ
+    LLM --> VDB
+
+    SEARCH --> VDB
+    SEARCH --> DB
+    SEARCH --> OBJ
+
+    BG --> DB
+    BG --> OBJ
+
+    RULES --> DB
+    PDF --> OBJ
+    PDF --> DB
+
+    API --> OBS
+    ORCH --> OBS
+    PARSE --> OBS
+    LLM --> OBS
+    BG --> OBS
+    RULES --> OBS
+    PDF --> OBS
