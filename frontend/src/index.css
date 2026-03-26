@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #080A14;
+    color: #E2E8F0;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(20px);
+  }
+
+  .glass-card-hover {
+    transition: all 0.3s ease;
+  }
+
+  .glass-card-hover:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%);
+    border-color: rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.15), 0 8px 32px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #8B5CF6, #06B6D4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-amber {
+    background: linear-gradient(135deg, #F59E0B, #EC4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-border {
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.4), inset 0 0 20px rgba(124, 58, 237, 0.05);
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 text-sm font-medium transition-all duration-200 cursor-pointer;
+  }
+
+  .nav-item:hover {
+    @apply text-slate-200 bg-white/5;
+  }
+
+  .nav-item.active {
+    @apply text-white;
+    background: linear-gradient(135deg, rgba(124,58,237,0.2) 0%, rgba(99,102,241,0.1) 100%);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.15);
+  }
+
+  .btn-primary {
+    @apply flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 cursor-pointer;
+    background: linear-gradient(135deg, #7C3AED, #6366F1);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.5), 0 4px 16px rgba(124, 58, 237, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.6), 0 4px 24px rgba(124, 58, 237, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    @apply flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 transition-all duration-200 cursor-pointer;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .btn-ghost:hover {
+    @apply text-slate-200;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl text-sm text-slate-200 bg-transparent outline-none transition-all duration-200;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .input-field:focus {
+    border-color: rgba(124, 58, 237, 0.5);
+    background: rgba(124, 58, 237, 0.05);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+  }
+
+  .input-field::placeholder {
+    color: rgba(148, 163, 184, 0.4);
+  }
+
+  .tag-badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .section-divider {
+    @apply w-full h-px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  }
+}
+
+@keyframes score-fill {
+  from { stroke-dashoffset: 251; }
+}
+
+.score-ring-animate {
+  animation: score-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fade-up 0.4s ease forwards;
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slide-in-right 0.3s ease forwards;
+}
