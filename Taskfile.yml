@@ -1,0 +1,59 @@
+version: "3"
+
+tasks:
+  frontend:dev:
+    desc: Start the Vite frontend
+    dir: frontend
+    cmds:
+      - npm run dev
+
+  frontend:build:
+    desc: Build the frontend
+    dir: frontend
+    cmds:
+      - npm run build
+
+  backend:install:
+    desc: Install backend dependencies with uv
+    cmds:
+      - uv sync --project backend --group dev
+
+  backend:dev:
+    desc: Start the FastAPI backend with uv
+    cmds:
+      - uv run --project backend uvicorn hargus_api.main:app --app-dir backend/src --reload --host 0.0.0.0 --port 8000
+
+  backend:worker:
+    desc: Start the Temporal worker stub
+    cmds:
+      - uv run --project backend python -m hargus_api.worker
+
+  backend:test:
+    desc: Run backend tests
+    cmds:
+      - uv run --project backend pytest backend/tests
+
+  backend:lint:
+    desc: Lint backend code
+    cmds:
+      - uv run --project backend ruff check backend/src backend/tests
+
+  backend:format:
+    desc: Format backend code
+    cmds:
+      - uv run --project backend ruff format backend/src backend/tests
+
+  docker:build:api:
+    desc: Build the backend API image
+    cmds:
+      - docker build -f backend/Dockerfile -t hargus-api:local .
+
+  docker:up:
+    desc: Start the local Docker stack
+    cmds:
+      - docker compose up --build
+
+  docker:down:
+    desc: Stop the local Docker stack
+    cmds:
+      - docker compose down

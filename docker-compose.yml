@@ -1,0 +1,17 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      HARGUS_ENVIRONMENT: docker
+      HARGUS_FRONTEND_ORIGIN: http://localhost:3000
+      HARGUS_TEMPORAL_ENABLED: "false"
+      HARGUS_TEMPORAL_SERVER_URL: temporal:7233
+      HARGUS_TEMPORAL_NAMESPACE: default
+      HARGUS_TEMPORAL_TASK_QUEUE: hargus-ai
+    ports:
+      - "8000:8000"
+
+  # Temporal can be added later by turning HARGUS_TEMPORAL_ENABLED=true
+  # and pointing HARGUS_TEMPORAL_SERVER_URL at your Temporal deployment.
