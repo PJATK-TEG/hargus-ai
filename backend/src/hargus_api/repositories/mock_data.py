@@ -10,7 +10,10 @@ _VACANCIES = [
         "location": "San Francisco, CA",
         "type": "full-time",
         "status": "active",
-        "description": "We are looking for a Senior Backend Engineer to design, build, and maintain scalable distributed systems.",
+        "description": (
+            "We are looking for a Senior Backend Engineer to design, build, and maintain "
+            "scalable distributed systems."
+        ),
         "requirements": ["5+ years Python/Go", "Distributed systems", "PostgreSQL & Redis"],
         "createdAt": "2026-03-10",
         "candidatesCount": 24,
@@ -62,7 +65,10 @@ _CANDIDATES = [
         ],
         "status": "interview",
         "parsedFields": {
-            "summary": "Experienced backend engineer with 8 years building distributed systems at scale.",
+            "summary": (
+                "Experienced backend engineer with 8 years building distributed systems "
+                "at scale."
+            ),
             "skills": ["Python", "Go", "PostgreSQL", "Redis", "Kafka"],
             "skillScores": [
                 {"skill": "Python", "score": 95},
@@ -75,7 +81,10 @@ _CANDIDATES = [
                     "role": "Senior Software Engineer",
                     "from": "2022",
                     "to": "Present",
-                    "description": "Led payment processing pipeline redesign handling high transaction volume.",
+                    "description": (
+                        "Led payment processing pipeline redesign handling high transaction "
+                        "volume."
+                    ),
                 }
             ],
             "education": [
@@ -227,13 +236,19 @@ _MESSAGES = {
         {
             "id": "m1",
             "role": "user",
-            "content": "What are the key strengths of this candidate for the Senior Backend Engineer role?",
+            "content": (
+                "What are the key strengths of this candidate for the Senior Backend "
+                "Engineer role?"
+            ),
             "timestamp": "2026-03-15T10:30:00Z",
         },
         {
             "id": "m2",
             "role": "assistant",
-            "content": "Strong backend depth, high system design score, and proven scale at previous companies.",
+            "content": (
+                "Strong backend depth, high system design score, and proven scale at "
+                "previous companies."
+            ),
             "timestamp": "2026-03-15T10:30:15Z",
         },
     ],

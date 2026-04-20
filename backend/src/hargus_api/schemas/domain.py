@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 VacancyType = Literal["full-time", "part-time", "contract", "remote"]
 VacancyStatus = Literal["active", "paused", "closed"]
