@@ -1,6 +1,34 @@
 version: "3"
 
 tasks:
+  setup:
+    desc: Install backend and frontend dependencies
+    cmds:
+      - task: backend:install
+      - task: frontend:install
+
+  api:
+    desc: Start backend API in dev mode
+    cmds:
+      - task: backend:dev
+
+  worker:
+    desc: Start Temporal worker in dev mode
+    cmds:
+      - task: backend:worker
+
+  check:
+    desc: Run lint and tests for backend
+    cmds:
+      - task: backend:lint
+      - task: backend:test
+
+  frontend:install:
+    desc: Install frontend dependencies
+    dir: frontend
+    cmds:
+      - npm install
+
   frontend:dev:
     desc: Start the Vite frontend
     dir: frontend
@@ -28,6 +56,11 @@ tasks:
     cmds:
       - uv run --project backend python -m hargus_api.worker
 
+  backend:start:
+    desc: Start the FastAPI backend without reload
+    cmds:
+      - uv run --project backend uvicorn hargus_api.main:app --app-dir backend/src --host 0.0.0.0 --port 8000
+
   backend:test:
     desc: Run backend tests
     cmds:
@@ -48,6 +81,12 @@ tasks:
     cmds:
       - docker build -f backend/Dockerfile -t hargus-api:local .
 
+  docker:build:
+    desc: Build backend and compose services
+    cmds:
+      - task: docker:build:api
+      - docker compose build
+
   docker:up:
     desc: Start the local Docker stack
     cmds:
@@ -57,3 +96,18 @@ tasks:
     desc: Stop the local Docker stack
     cmds:
       - docker compose down
+
+  db:up:
+    desc: Start only local postgres in docker
+    cmds:
+      - docker compose up -d postgres
+
+  db:down:
+    desc: Stop local postgres in docker
+    cmds:
+      - docker compose stop postgres
+
+  db:logs:
+    desc: Stream postgres logs
+    cmds:
+      - docker compose logs -f postgres

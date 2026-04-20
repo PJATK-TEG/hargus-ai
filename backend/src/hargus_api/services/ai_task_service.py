@@ -4,22 +4,35 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from hargus_api.config import Settings
+from hargus_api.repositories.ai_task_repository import (
+    InMemoryAiTaskRepository,
+    PostgresAiTaskRepository,
+)
 from hargus_api.schemas.domain import AiTaskRecord, AiTaskRequest
 from hargus_api.temporal.client import create_temporal_client
 from hargus_api.temporal.workflows.ai_tasks import AiTaskWorkflow
 
-_TASKS: dict[str, AiTaskRecord] = {}
+_IN_MEMORY_REPOSITORY = InMemoryAiTaskRepository()
+_POSTGRES_REPOSITORIES: dict[str, PostgresAiTaskRepository] = {}
 
 
 class AiTaskService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        if settings.database_url:
+            if settings.database_url not in _POSTGRES_REPOSITORIES:
+                _POSTGRES_REPOSITORIES[settings.database_url] = PostgresAiTaskRepository(
+                    settings.database_url
+                )
+            self.repository = _POSTGRES_REPOSITORIES[settings.database_url]
+        else:
+            self.repository = _IN_MEMORY_REPOSITORY
 
     def list_tasks(self) -> list[AiTaskRecord]:
-        return list(_TASKS.values())
+        return self.repository.list_tasks()
 
     def get_task(self, task_id: str) -> AiTaskRecord | None:
-        return _TASKS.get(task_id)
+        return self.repository.get_task(task_id)
 
     async def submit_task(self, request: AiTaskRequest) -> AiTaskRecord:
         now = datetime.now(UTC)
@@ -38,10 +51,13 @@ class AiTaskService:
             createdAt=now,
             updatedAt=now,
             result={
-                "message": "Queued in stub mode. Connect your real Temporal flow to replace this placeholder.",
+                "message": (
+                    "Queued in stub mode. Connect your real Temporal flow to replace "
+                    "this placeholder."
+                ),
             },
         )
-        _TASKS[task_id] = record
+        self.repository.save_task(record)
 
         if self.settings.temporal_enabled:
             client = await create_temporal_client(self.settings)

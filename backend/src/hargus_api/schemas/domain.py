@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 VacancyType = Literal["full-time", "part-time", "contract", "remote"]
 VacancyStatus = Literal["active", "paused", "closed"]
@@ -18,6 +17,15 @@ AiTaskType = Literal[
     "candidate_background_check",
 ]
 AiTaskStatus = Literal["queued", "running", "completed", "failed"]
+BackgroundSource = Literal[
+    "courtlistener",
+    "recap",
+    "fbi_cde",
+    "openalex",
+    "crossref",
+    "orcid",
+    "wos",
+]
 
 
 class Vacancy(BaseModel):
@@ -113,6 +121,46 @@ class AiTaskRequest(BaseModel):
     vacancy_id: str | None = Field(default=None, alias="vacancyId")
     prompt: str
 
+    @model_validator(mode="after")
+    def validate_candidates(self) -> "AiTaskRequest":
+        if self.candidate_id is None and not self.candidate_ids:
+            raise ValueError("Either candidateId or candidateIds must be provided")
+        return self
+
+
+class BackgroundCheckRequest(BaseModel):
+    candidate_id: str | None = Field(default=None, alias="candidateId")
+    candidate_ids: list[str] = Field(default_factory=list, alias="candidateIds")
+    vacancy_id: str | None = Field(default=None, alias="vacancyId")
+    prompt: str | None = None
+    sources: list[BackgroundSource] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> "BackgroundCheckRequest":
+        if self.candidate_id is None and not self.candidate_ids:
+            raise ValueError("Either candidateId or candidateIds must be provided")
+        return self
+
+
+class BackgroundSourceSearchRequest(BaseModel):
+    candidate_id: str | None = Field(default=None, alias="candidateId")
+    candidate_ids: list[str] = Field(default_factory=list, alias="candidateIds")
+    vacancy_id: str | None = Field(default=None, alias="vacancyId")
+    query: str
+
+    @model_validator(mode="after")
+    def validate_candidates(self) -> "BackgroundSourceSearchRequest":
+        if self.candidate_id is None and not self.candidate_ids:
+            raise ValueError("Either candidateId or candidateIds must be provided")
+        return self
+
+
+class BackgroundSourceInfo(BaseModel):
+    id: BackgroundSource
+    name: str
+    category: Literal["legal", "scholarly"]
+    requires_api_key: bool = Field(alias="requiresApiKey")
+
 
 class AiTaskRecord(BaseModel):
     id: str
@@ -138,6 +186,9 @@ class HealthResponse(BaseModel):
 
 class PaginationMeta(BaseModel):
     total: int
+    limit: int
+    offset: int
+    returned: int
 
 
 class VacancyListResponse(BaseModel):
@@ -153,3 +204,7 @@ class CandidateListResponse(BaseModel):
 class MessageListResponse(BaseModel):
     items: list[Message]
     meta: PaginationMeta
+
+
+class BackgroundSourceListResponse(BaseModel):
+    items: list[BackgroundSourceInfo]
