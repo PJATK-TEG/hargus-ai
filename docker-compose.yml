@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hargus
+      POSTGRES_PASSWORD: hargus
+      POSTGRES_DB: hargus
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hargus -d hargus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HARGUS_ENVIRONMENT: docker
+      HARGUS_FRONTEND_ORIGIN: http://localhost:3000
+      HARGUS_TEMPORAL_ENABLED: "false"
+      HARGUS_TEMPORAL_SERVER_URL: temporal:7233
+      HARGUS_TEMPORAL_NAMESPACE: default
+      HARGUS_TEMPORAL_TASK_QUEUE: hargus-ai
+      HARGUS_DATABASE_URL: postgresql://hargus:hargus@postgres:5432/hargus
+    ports:
+      - "8000:8000"
+
+  # Temporal can be added later by turning HARGUS_TEMPORAL_ENABLED=true
+  # and pointing HARGUS_TEMPORAL_SERVER_URL at your Temporal deployment.
+
+volumes:
+  postgres_data:
