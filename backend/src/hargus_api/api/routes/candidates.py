@@ -1,6 +1,12 @@
-from fastapi import APIRouter, HTTPException, Query
+import uuid
 
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
+
+from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
 from hargus_api.schemas.domain import (
+    AnalysisReportResponse,
     Candidate,
     CandidateListResponse,
     MessageListResponse,
@@ -11,6 +17,7 @@ from hargus_api.services.candidate_service import (
     get_candidate_messages,
     list_candidates_paginated,
 )
+from hargus_api.storage.factory import get_storage
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
@@ -34,6 +41,52 @@ async def get_candidate_by_id(candidate_id: str) -> Candidate:
     if candidate is None:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return candidate
+
+
+@router.get("/{candidate_id}/reports", response_model=list[AnalysisReportResponse])
+async def list_reports(candidate_id: str) -> list[AnalysisReportResponse]:
+    async with AsyncSessionLocal() as session:
+        repo = WorkflowRunRepository(session)
+        reports = await repo.list_reports_by_candidate(candidate_id)
+    return [
+        AnalysisReportResponse(
+            id=str(r.id),
+            candidateId=r.candidate_id,
+            vacancyId=r.vacancy_id,
+            overallScore=r.overall_score,
+            skillMatchScore=r.skill_match_score,
+            experienceScore=r.experience_score,
+            recommendation=r.recommendation,
+            hasPdf=r.pdf_storage_key is not None,
+            createdAt=r.created_at,
+        )
+        for r in reports
+    ]
+
+
+@router.get("/{candidate_id}/reports/{report_id}/pdf")
+async def get_report_pdf(candidate_id: str, report_id: str) -> Response:
+    try:
+        rid = uuid.UUID(report_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid report ID")
+
+    async with AsyncSessionLocal() as session:
+        repo = WorkflowRunRepository(session)
+        report = await repo.get_report_by_id(rid)
+
+    if report is None or report.candidate_id != candidate_id:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if not report.pdf_storage_key:
+        raise HTTPException(status_code=404, detail="PDF not available for this report")
+
+    storage = get_storage()
+    pdf_bytes = await storage.download(report.pdf_storage_key)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="report-{report_id[:8]}.pdf"'},
+    )
 
 
 @router.get("/{candidate_id}/messages", response_model=MessageListResponse)

@@ -61,6 +61,16 @@ tasks:
     cmds:
       - uv run --project backend uvicorn hargus_api.main:app --app-dir backend/src --host 0.0.0.0 --port 8000
 
+  backend:migrate:
+    desc: Run Alembic migrations (upgrade to head)
+    cmds:
+      - uv run --project backend alembic --config backend/alembic.ini upgrade head
+
+  backend:migrate:new:
+    desc: Generate a new Alembic migration (usage -- task backend:migrate:new -- -m "description")
+    cmds:
+      - uv run --project backend alembic --config backend/alembic.ini revision --autogenerate {{.CLI_ARGS}}
+
   backend:test:
     desc: Run backend tests
     cmds:

@@ -119,7 +119,8 @@ class AiTaskRequest(BaseModel):
     candidate_id: str | None = Field(default=None, alias="candidateId")
     candidate_ids: list[str] = Field(default_factory=list, alias="candidateIds")
     vacancy_id: str | None = Field(default=None, alias="vacancyId")
-    prompt: str
+    # Prompt is optional: when omitted the backend loads it from analysis_config.
+    prompt: str = ""
 
     @model_validator(mode="after")
     def validate_candidates(self) -> "AiTaskRequest":
@@ -175,6 +176,18 @@ class AiTaskRecord(BaseModel):
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
     result: dict[str, str] | None = None
+
+
+class AnalysisReportResponse(BaseModel):
+    id: str
+    candidate_id: str = Field(alias="candidateId")
+    vacancy_id: str = Field(alias="vacancyId")
+    overall_score: float = Field(alias="overallScore")
+    skill_match_score: float = Field(alias="skillMatchScore")
+    experience_score: float = Field(alias="experienceScore")
+    recommendation: str
+    has_pdf: bool = Field(alias="hasPdf")
+    created_at: datetime = Field(alias="createdAt")
 
 
 class HealthResponse(BaseModel):

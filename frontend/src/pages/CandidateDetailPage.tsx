@@ -3,14 +3,14 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, ExternalLink, Briefcase, GraduationCap,
   Award, Globe, FileText, MessageSquare, Send, ChevronDown, ChevronUp,
-  File, Clock, User, Sparkles, BookOpen, AlertTriangle, Shield
+  File, Clock, User, Sparkles, BookOpen, Shield, Loader2, Play
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TextareaAutosize from 'react-textarea-autosize'
-import { mockCandidates, mockMessages } from '../data/mock'
 import { getStatusColor, getTagColors, getScoreColor, cn, formatDate } from '../lib/utils'
+import { api } from '../lib/api'
 import ScoreRing from '../components/ScoreRing'
-import type { Message, CandidateFile, FileType } from '../types'
+import type { Message, CandidateFile, FileType, Candidate, AnalysisReport } from '../types'
 
 type Tab = 'overview' | 'files' | 'chat'
 
@@ -23,16 +23,136 @@ const fileTypeConfig: Record<FileType, { icon: typeof FileText; color: string; b
 
 export default function CandidateDetailPage() {
   const { vacancyId, candidateId } = useParams<{ vacancyId: string; candidateId: string }>()
-  const candidate = mockCandidates.find((c) => c.id === candidateId)
+  const [candidate, setCandidate] = useState<Candidate | null>(null)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('overview')
-  const [messages, setMessages] = useState<Message[]>(mockMessages[candidateId ?? ''] ?? [])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [thinking, setThinking] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [expandedFile, setExpandedFile] = useState<string | null>(null)
+  const [reports, setReports] = useState<AnalysisReport[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    Promise.all([
+      api.getCandidate(candidateId!),
+      api.listMessages(candidateId!),
+      api.listCandidateReports(candidateId!),
+    ])
+      .then(([c, msgs, rpts]) => {
+        setCandidate(c)
+        setMessages(msgs)
+        setReports(rpts)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [candidateId])
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, thinking])
+
+  const pollTask = async (taskId: string, attempts: number) => {
+    if (attempts >= 8) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `m${Date.now()}`,
+          role: 'assistant' as const,
+          content: 'Your request has been queued for AI analysis. The Temporal worker will process it and results will be available shortly.',
+          timestamp: new Date().toISOString(),
+        },
+      ])
+      setThinking(false)
+      return
+    }
+    try {
+      const task = await api.getAiTask(taskId)
+      if (task.status === 'completed') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `m${Date.now()}`,
+            role: 'assistant' as const,
+            content: task.result?.message ?? task.result?.summary ?? 'Analysis complete.',
+            timestamp: new Date().toISOString(),
+          },
+        ])
+        setThinking(false)
+      } else if (task.status === 'failed') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `m${Date.now()}`,
+            role: 'assistant' as const,
+            content: 'The analysis failed. Please try again.',
+            timestamp: new Date().toISOString(),
+          },
+        ])
+        setThinking(false)
+      } else {
+        setTimeout(() => pollTask(taskId, attempts + 1), 2000)
+      }
+    } catch {
+      setThinking(false)
+    }
+  }
+
+  const handleSend = async () => {
+    if (!input.trim() || thinking) return
+    const prompt = input.trim()
+    const userMsg: Message = {
+      id: `m${Date.now()}`,
+      role: 'user',
+      content: prompt,
+      timestamp: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, userMsg])
+    setInput('')
+
+    setThinking(true)
+    try {
+      const task = await api.submitAiTask({
+        type: 'candidate_summary',
+        candidateId: candidateId!,
+        prompt,
+      })
+      pollTask(task.id, 0)
+    } catch {
+      setThinking(false)
+    }
+  }
+
+  const handleAnalyze = async () => {
+    if (analyzing || thinking) return
+    setAnalyzing(true)
+    setActiveTab('chat')
+    const systemMsg = {
+      id: `m${Date.now()}`,
+      role: 'assistant' as const,
+      content: `Starting full AI analysis for **${candidate?.name}**. This will extract skills, score experience, and generate a report…`,
+      timestamp: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, systemMsg])
+    setThinking(true)
+    try {
+      const task = await api.analyzeCandidate(candidateId!)
+      pollTask(task.id, 0)
+    } catch {
+      setThinking(false)
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-aurora-purple animate-spin" />
+      </div>
+    )
+  }
 
   if (!candidate) {
     return (
@@ -44,29 +164,6 @@ export default function CandidateDetailPage() {
 
   const cStatus = getStatusColor(candidate.status)
   const { parsedFields } = candidate
-
-  const handleSend = () => {
-    if (!input.trim()) return
-    const userMsg: Message = {
-      id: `m${Date.now()}`,
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date().toISOString(),
-    }
-    setMessages((prev) => [...prev, userMsg])
-    setInput('')
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMsg: Message = {
-        id: `m${Date.now() + 1}`,
-        role: 'assistant',
-        content: `Based on my analysis of ${candidate.name}'s profile and documents, I can provide insights on your question. Let me review the relevant data from their CV, interview transcripts, and assessment scores to give you a comprehensive answer.`,
-        timestamp: new Date().toISOString(),
-      }
-      setMessages((prev) => [...prev, aiMsg])
-    }, 1200)
-  }
 
   const tabs: { id: Tab; label: string; icon: typeof User }[] = [
     { id: 'overview', label: 'Overview', icon: User },
@@ -92,7 +189,6 @@ export default function CandidateDetailPage() {
         className="glass-card rounded-2xl p-6 mb-6"
       >
         <div className="flex items-start gap-5">
-          {/* Avatar */}
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold flex-shrink-0 border"
             style={{
@@ -104,7 +200,6 @@ export default function CandidateDetailPage() {
             {candidate.avatarInitials}
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1.5">
               <h1 className="text-2xl font-bold text-white">{candidate.name}</h1>
@@ -138,10 +233,29 @@ export default function CandidateDetailPage() {
             </div>
           </div>
 
-          {/* Scores */}
           <div className="flex items-center gap-6 flex-shrink-0">
             <ScoreRing score={candidate.score} size={80} strokeWidth={5} label="Overall" />
             <ScoreRing score={candidate.relevancyScore} size={80} strokeWidth={5} label="Relevancy" />
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing || thinking}
+              className={cn(
+                'flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl border transition-all',
+                analyzing || thinking
+                  ? 'border-aurora-purple/20 bg-aurora-purple/5 cursor-not-allowed opacity-60'
+                  : 'border-aurora-purple/30 bg-aurora-purple/10 hover:bg-aurora-purple/20 hover:border-aurora-purple/50'
+              )}
+              title="Run AI analysis workflow for this candidate"
+            >
+              {analyzing ? (
+                <Loader2 className="w-5 h-5 text-aurora-violet animate-spin" />
+              ) : (
+                <Play className="w-5 h-5 text-aurora-violet" />
+              )}
+              <span className="text-[11px] font-semibold text-aurora-violet whitespace-nowrap">
+                {analyzing ? 'Starting…' : 'Analyze'}
+              </span>
+            </button>
           </div>
         </div>
       </motion.div>
@@ -162,7 +276,7 @@ export default function CandidateDetailPage() {
             <tab.icon className="w-4 h-4" />
             {tab.label}
             {tab.id === 'files' && (
-              <span className="ml-1 text-[11px] bg-white/10 px-1.5 py-0.5 rounded-md">{candidate.files.length}</span>
+              <span className="ml-1 text-[11px] bg-white/10 px-1.5 py-0.5 rounded-md">{candidate.files.length + reports.length}</span>
             )}
           </button>
         ))}
@@ -178,9 +292,7 @@ export default function CandidateDetailPage() {
             exit={{ opacity: 0, y: -8 }}
             className="grid grid-cols-3 gap-6"
           >
-            {/* Left column - Summary & Skills */}
             <div className="col-span-2 space-y-6">
-              {/* Summary */}
               <div className="glass-card rounded-2xl p-6">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-aurora-purple" />
@@ -189,7 +301,6 @@ export default function CandidateDetailPage() {
                 <p className="text-sm text-slate-300 leading-relaxed">{parsedFields.summary}</p>
               </div>
 
-              {/* Skill Scores */}
               <div className="glass-card rounded-2xl p-6">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
                   <Award className="w-4 h-4 text-aurora-cyan" />
@@ -200,10 +311,7 @@ export default function CandidateDetailPage() {
                     <div key={ss.skill} className="group">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-sm text-slate-300">{ss.skill}</span>
-                        <span
-                          className="text-xs font-bold"
-                          style={{ color: getScoreColor(ss.score) }}
-                        >
+                        <span className="text-xs font-bold" style={{ color: getScoreColor(ss.score) }}>
                           {ss.score}
                         </span>
                       </div>
@@ -213,10 +321,7 @@ export default function CandidateDetailPage() {
                           animate={{ width: `${ss.score}%` }}
                           transition={{ duration: 0.8, ease: 'easeOut' }}
                           className="h-full rounded-full"
-                          style={{
-                            backgroundColor: getScoreColor(ss.score),
-                            boxShadow: `0 0 8px ${getScoreColor(ss.score)}40`,
-                          }}
+                          style={{ backgroundColor: getScoreColor(ss.score), boxShadow: `0 0 8px ${getScoreColor(ss.score)}40` }}
                         />
                       </div>
                     </div>
@@ -224,7 +329,6 @@ export default function CandidateDetailPage() {
                 </div>
               </div>
 
-              {/* Experience */}
               <div className="glass-card rounded-2xl p-6">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
                   <Briefcase className="w-4 h-4 text-aurora-amber" />
@@ -234,11 +338,9 @@ export default function CandidateDetailPage() {
                 <div className="space-y-4">
                   {parsedFields.experience.map((exp, i) => (
                     <div key={i} className="relative pl-6 pb-4 last:pb-0">
-                      {/* Timeline line */}
                       {i < parsedFields.experience.length - 1 && (
                         <div className="absolute left-[7px] top-[18px] bottom-0 w-px bg-gradient-to-b from-aurora-purple/30 to-transparent" />
                       )}
-                      {/* Dot */}
                       <div className="absolute left-0 top-[6px] w-[15px] h-[15px] rounded-full bg-void-800 border-2 border-aurora-purple/40 flex items-center justify-center">
                         <div className="w-[5px] h-[5px] rounded-full bg-aurora-purple" />
                       </div>
@@ -254,9 +356,7 @@ export default function CandidateDetailPage() {
               </div>
             </div>
 
-            {/* Right column - Education, Languages, etc. */}
             <div className="space-y-6">
-              {/* Skills tags */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Skills</h3>
                 <div className="flex flex-wrap gap-1.5">
@@ -268,7 +368,6 @@ export default function CandidateDetailPage() {
                 </div>
               </div>
 
-              {/* Education */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
                   <GraduationCap className="w-4 h-4" />
@@ -285,7 +384,6 @@ export default function CandidateDetailPage() {
                 </div>
               </div>
 
-              {/* Languages */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
                   <Globe className="w-4 h-4" />
@@ -298,7 +396,6 @@ export default function CandidateDetailPage() {
                 </div>
               </div>
 
-              {/* Certifications */}
               {parsedFields.certifications.length > 0 && (
                 <div className="glass-card rounded-2xl p-5">
                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
@@ -316,7 +413,6 @@ export default function CandidateDetailPage() {
                 </div>
               )}
 
-              {/* Quick info */}
               <div className="glass-card rounded-2xl p-5">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Details</h3>
                 <div className="space-y-2.5 text-sm">
@@ -346,15 +442,30 @@ export default function CandidateDetailPage() {
             exit={{ opacity: 0, y: -8 }}
             className="space-y-3"
           >
+            {reports.map((report, i) => (
+              <ReportCard
+                key={report.id}
+                report={report}
+                index={i}
+                candidateId={candidateId!}
+                expanded={expandedFile === report.id}
+                onToggle={() => setExpandedFile(expandedFile === report.id ? null : report.id)}
+              />
+            ))}
             {candidate.files.map((file, i) => (
               <FileCard
                 key={file.id}
                 file={file}
-                index={i}
+                index={reports.length + i}
                 expanded={expandedFile === file.id}
                 onToggle={() => setExpandedFile(expandedFile === file.id ? null : file.id)}
               />
             ))}
+            {reports.length === 0 && candidate.files.length === 0 && (
+              <div className="glass-card rounded-2xl p-12 text-center text-slate-500 text-sm">
+                No files yet. Run an analysis to generate a report.
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -367,7 +478,6 @@ export default function CandidateDetailPage() {
             className="glass-card rounded-2xl flex flex-col"
             style={{ height: 'calc(100vh - 380px)' }}
           >
-            {/* Chat header */}
             <div className="px-6 py-4 border-b border-white/[0.06]">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-aurora-purple" />
@@ -378,9 +488,8 @@ export default function CandidateDetailPage() {
               </p>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              {messages.length === 0 && (
+              {messages.length === 0 && !thinking && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <div className="w-14 h-14 rounded-2xl bg-aurora-purple/10 border border-aurora-purple/20 flex items-center justify-center mb-4">
                     <MessageSquare className="w-7 h-7 text-aurora-purple" />
@@ -407,13 +516,11 @@ export default function CandidateDetailPage() {
                   </div>
                 </div>
               )}
+
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={cn(
-                    'flex gap-3 max-w-[85%]',
-                    msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''
-                  )}
+                  className={cn('flex gap-3 max-w-[85%]', msg.role === 'user' ? 'ml-auto flex-row-reverse' : '')}
                 >
                   <div
                     className={cn(
@@ -437,9 +544,7 @@ export default function CandidateDetailPage() {
                       <p key={i} className={i > 0 ? 'mt-2' : ''}>
                         {line.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
                           part.startsWith('**') && part.endsWith('**') ? (
-                            <strong key={j} className="text-white font-semibold">
-                              {part.slice(2, -2)}
-                            </strong>
+                            <strong key={j} className="text-white font-semibold">{part.slice(2, -2)}</strong>
                           ) : (
                             part
                           )
@@ -449,10 +554,23 @@ export default function CandidateDetailPage() {
                   </div>
                 </div>
               ))}
+
+              {thinking && (
+                <div className="flex gap-3 max-w-[85%]">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-aurora-purple/20 text-aurora-purple">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div className="rounded-2xl px-4 py-3 bg-white/[0.04] border border-white/[0.06] flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-aurora-purple animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-aurora-purple animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full bg-aurora-purple animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
+
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input */}
             <div className="px-6 py-4 border-t border-white/[0.06]">
               <div className="flex items-end gap-3">
                 <TextareaAutosize
@@ -471,15 +589,15 @@ export default function CandidateDetailPage() {
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || thinking}
                   className={cn(
                     'p-3 rounded-xl transition-all flex-shrink-0',
-                    input.trim()
+                    input.trim() && !thinking
                       ? 'btn-primary'
                       : 'bg-white/5 text-slate-600 cursor-not-allowed'
                   )}
                 >
-                  <Send className="w-4 h-4" />
+                  {thinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -487,6 +605,98 @@ export default function CandidateDetailPage() {
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+const recommendationColor: Record<string, string> = {
+  strong_match: 'text-aurora-emerald',
+  possible: 'text-aurora-cyan',
+  weak: 'text-aurora-amber',
+  manual_review: 'text-aurora-amber',
+  red_flag: 'text-red-400',
+}
+
+function ReportCard({
+  report,
+  index,
+  candidateId,
+  expanded,
+  onToggle,
+}: {
+  report: AnalysisReport
+  index: number
+  candidateId: string
+  expanded: boolean
+  onToggle: () => void
+}) {
+  const pdfUrl = api.getCandidateReportPdfUrl(candidateId, report.id)
+  const recColor = recommendationColor[report.recommendation] ?? 'text-slate-300'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.06 }}
+      className="glass-card rounded-2xl overflow-hidden"
+    >
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-4 p-5 text-left hover:bg-white/[0.02] transition-all"
+      >
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-aurora-purple/10">
+          <FileText className="w-5 h-5 text-aurora-purple" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-medium text-white truncate">
+            AI Analysis Report
+          </h4>
+          <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+            <span className={cn('capitalize font-medium', recColor)}>
+              {report.recommendation.replace(/_/g, ' ')}
+            </span>
+            <span>Score: {Math.round(report.overallScore * 100)}%</span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatDate(report.createdAt)}
+            </span>
+            {report.hasPdf && (
+              <span className="text-aurora-purple font-medium">PDF available</span>
+            )}
+          </div>
+        </div>
+        {expanded ? (
+          <ChevronUp className="w-4 h-4 text-slate-500" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-slate-500" />
+        )}
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5">
+              <div className="section-divider mb-4" />
+              {report.hasPdf ? (
+                <iframe
+                  src={pdfUrl}
+                  className="w-full rounded-xl border border-white/[0.06]"
+                  style={{ height: '70vh' }}
+                  title="Analysis Report PDF"
+                />
+              ) : (
+                <p className="text-sm text-slate-500 italic">PDF not yet available for this report.</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
