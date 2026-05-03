@@ -51,7 +51,12 @@ services:
     depends_on:
       - postgres
     environment:
+<<<<<<< HEAD
       DATABASE_URL: postgresql://hargus:hargus@postgres:5432/hargus
+=======
+      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/langfuse
+      SALT: dev-langfuse-salt-change-in-prod
+>>>>>>> 6dc1da0 (worked)
       NEXTAUTH_SECRET: dev-secret-change-in-prod
       NEXTAUTH_URL: http://localhost:3001
       TELEMETRY_ENABLED: "false"
