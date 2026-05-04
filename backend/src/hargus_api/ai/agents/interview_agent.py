@@ -52,14 +52,26 @@ class _State(TypedDict):
     error: str | None
 
 
-def build_interview_agent(llm: BaseChatModel):
+def build_interview_agent(
+    llm: BaseChatModel,
+    trace_metadata: dict[str, Any] | None = None,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
+):
     chain = build_json_chain(llm, _SYSTEM, _HUMAN)
+    invoke_cfg = traced_config(
+        "interview_insight",
+        trace_metadata,
+        session_id=session_id,
+        user_id=user_id,
+    )
 
     async def extract(state: _State) -> _State:
         try:
             result = await chain.ainvoke(
                 {"transcript": truncate(state["transcript"], 8000)},
-                config=traced_config("interview_insight"),
+                config=invoke_cfg,
             )
             return {"parsed_result": result, "error": None}
         except Exception:
@@ -73,10 +85,19 @@ def build_interview_agent(llm: BaseChatModel):
     return g.compile()
 
 
-async def run_interview_agent(llm: BaseChatModel, transcript_text: str) -> dict[str, Any]:
+async def run_interview_agent(
+    llm: BaseChatModel,
+    transcript_text: str,
+    *,
+    trace_metadata: dict[str, Any] | None = None,
+    session_id: str | None = None,
+    user_id: str | None = None,
+) -> dict[str, Any]:
     if not transcript_text.strip():
         return _NO_TRANSCRIPT.copy()
-    graph = build_interview_agent(llm)
+    graph = build_interview_agent(
+        llm, trace_metadata, session_id=session_id, user_id=user_id
+    )
     result = await graph.ainvoke(
         {"transcript": transcript_text, "parsed_result": {}, "error": None}
     )

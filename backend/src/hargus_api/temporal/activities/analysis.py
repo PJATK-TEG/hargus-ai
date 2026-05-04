@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from temporalio import activity
 
@@ -11,13 +12,16 @@ from hargus_api.ai.agents.interview_agent import run_interview_agent
 from hargus_api.ai.agents.jd_agent import run_jd_agent
 from hargus_api.ai.llm.factory import get_llm
 from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.ai.tracing import record_score
+from hargus_api.config import get_settings
 from hargus_api.services.candidate_service import get_vacancy
+from hargus_api.temporal.activity_utils import heartbeat_while
 from hargus_api.temporal.models import (
     AgentActivityInput,
     BehavioralExample,
     CandidateFacts,
-    ConsolidateInput,
     ConsolidatedFacts,
+    ConsolidateInput,
     ExperienceEntry,
     InterviewFindings,
     JobRubric,
@@ -28,10 +32,83 @@ from hargus_api.temporal.models import (
 logger = logging.getLogger(__name__)
 
 
+def _analysis_trace_metadata(inp: AgentActivityInput) -> dict[str, Any]:
+    """Compact Langfuse metadata: pipeline context without document bodies."""
+    types = [d.source_type for d in inp.documents]
+    vid = (inp.vacancy_id or "").strip()
+    settings = get_settings()
+    return {
+        "workflow_run_id": inp.workflow_run_id,
+        "candidate_id": inp.candidate_id,
+        # Langfuse propagated metadata prefers string values.
+        "vacancy_set": str(bool(vid)),
+        "rag_collection": str(bool((inp.collection_name or "").strip())),
+        "doc_count": str(len(inp.documents)),
+        "has_cv": str("cv" in types),
+        "has_transcript": str("transcript" in types),
+        "llm_provider": settings.llm_provider,
+        "llm_model": settings.llm_model,
+    }
+
+
 def _get(d: dict, key: str, default):
     """Like dict.get but also substitutes the default when the value is None."""
     v = d.get(key)
     return v if v is not None else default
+
+
+class _CoercionCounter:
+    """Lightweight counter for tracking how often a field was defaulted/coerced.
+
+    A coercion is any time strict Pydantic-bound output had to be substituted
+    because the LLM returned missing/invalid data.
+    """
+
+    __slots__ = ("count",)
+
+    def __init__(self) -> None:
+        self.count = 0
+
+    def get(self, d: dict, key: str, default: Any) -> Any:
+        v = d.get(key)
+        if v is None:
+            self.count += 1
+            return default
+        return v
+
+    def bump(self, n: int = 1) -> None:
+        self.count += n
+
+
+def _normalize_education_entries(raw: Any, c: _CoercionCounter) -> list[dict[str, str]]:
+    """Coerce LLM JSON to ``list[dict[str, str]]`` for ``CandidateFacts.education``.
+
+    Models often return ``year`` as a number; Pydantic expects strings for all values.
+    """
+    if not isinstance(raw, list):
+        c.bump()
+        return []
+    out: list[dict[str, str]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            c.bump()
+            continue
+        row: dict[str, str] = {}
+        for key, val in item.items():
+            sk = str(key)
+            if val is None:
+                c.bump()
+                row[sk] = ""
+            elif isinstance(val, (dict, list)):
+                c.bump()
+                row[sk] = ""
+            elif isinstance(val, str):
+                row[sk] = val.strip()
+            else:
+                c.bump()
+                row[sk] = str(val).strip()
+        out.append(row)
+    return out
 
 
 def _cv_text(inp: AgentActivityInput) -> str:
@@ -76,15 +153,31 @@ async def _vacancy_description(inp: AgentActivityInput) -> str:
 async def run_jd_analysis_activity(inp: AgentActivityInput) -> JobRubric:
     activity.heartbeat()
     vac_desc = await _vacancy_description(inp)
-    raw = await run_jd_agent(get_llm(), vac_desc)
-    return JobRubric(
-        required_skills=_get(raw, "required_skills", []),
-        preferred_skills=_get(raw, "preferred_skills", []),
-        experience_years_min=_get(raw, "experience_years_min", 0),
-        key_responsibilities=_get(raw, "key_responsibilities", []),
-        seniority_level=_get(raw, "seniority_level", ""),
-        domain_keywords=_get(raw, "domain_keywords", []),
+    raw = await heartbeat_while(
+        run_jd_agent(
+            get_llm(),
+            vac_desc,
+            trace_metadata=_analysis_trace_metadata(inp),
+            session_id=inp.workflow_run_id,
+            user_id=inp.candidate_id,
+        )
     )
+    c = _CoercionCounter()
+    rubric = JobRubric(
+        required_skills=c.get(raw, "required_skills", []),
+        preferred_skills=c.get(raw, "preferred_skills", []),
+        experience_years_min=c.get(raw, "experience_years_min", 0),
+        key_responsibilities=c.get(raw, "key_responsibilities", []),
+        seniority_level=c.get(raw, "seniority_level", ""),
+        domain_keywords=c.get(raw, "domain_keywords", []),
+    )
+    record_score(
+        "schema_coercion_jd",
+        float(c.count),
+        session_id=inp.workflow_run_id,
+        comment=f"defaulted {c.count} field(s) on JobRubric",
+    )
+    return rubric
 
 
 # ── Candidate Extraction activity ─────────────────────────────────────────────
@@ -93,25 +186,41 @@ async def run_jd_analysis_activity(inp: AgentActivityInput) -> JobRubric:
 @activity.defn
 async def run_candidate_extraction_activity(inp: AgentActivityInput) -> CandidateFacts:
     activity.heartbeat()
-    raw = await run_candidate_agent(get_llm(), _cv_text(inp) or _all_text(inp))
+    raw = await heartbeat_while(
+        run_candidate_agent(
+            get_llm(),
+            _cv_text(inp) or _all_text(inp),
+            trace_metadata=_analysis_trace_metadata(inp),
+            session_id=inp.workflow_run_id,
+            user_id=inp.candidate_id,
+        )
+    )
+    c = _CoercionCounter()
     entries = [
         ExperienceEntry(
-            company=_get(e, "company", ""),
-            role=_get(e, "role", ""),
-            duration_months=int(_get(e, "duration_months", 0)),
-            description=_get(e, "description", ""),
+            company=c.get(e, "company", ""),
+            role=c.get(e, "role", ""),
+            duration_months=int(c.get(e, "duration_months", 0)),
+            description=c.get(e, "description", ""),
         )
-        for e in _get(raw, "experience_entries", [])
+        for e in c.get(raw, "experience_entries", [])
     ]
-    return CandidateFacts(
-        skills=_get(raw, "skills", []),
+    facts = CandidateFacts(
+        skills=c.get(raw, "skills", []),
         experience_entries=entries,
-        total_years_experience=float(_get(raw, "total_years_experience", 0.0)),
-        education=_get(raw, "education", []),
-        certifications=_get(raw, "certifications", []),
-        domain_signals=_get(raw, "domain_signals", []),
-        confidence=float(_get(raw, "confidence", 0.0)),
+        total_years_experience=float(c.get(raw, "total_years_experience", 0.0)),
+        education=_normalize_education_entries(c.get(raw, "education", []), c),
+        certifications=c.get(raw, "certifications", []),
+        domain_signals=c.get(raw, "domain_signals", []),
+        confidence=float(c.get(raw, "confidence", 0.0)),
     )
+    record_score(
+        "schema_coercion_candidate",
+        float(c.count),
+        session_id=inp.workflow_run_id,
+        comment=f"defaulted {c.count} field(s) on CandidateFacts",
+    )
+    return facts
 
 
 # ── Interview Insight activity ────────────────────────────────────────────────
@@ -120,25 +229,42 @@ async def run_candidate_extraction_activity(inp: AgentActivityInput) -> Candidat
 @activity.defn
 async def run_interview_insight_activity(inp: AgentActivityInput) -> InterviewFindings:
     activity.heartbeat()
-    raw = await run_interview_agent(get_llm(), _transcript_text(inp))
+    raw = await heartbeat_while(
+        run_interview_agent(
+            get_llm(),
+            _transcript_text(inp),
+            trace_metadata=_analysis_trace_metadata(inp),
+            session_id=inp.workflow_run_id,
+            user_id=inp.candidate_id,
+        )
+    )
+    c = _CoercionCounter()
     examples = [
         BehavioralExample(
-            competency=_get(e, "competency", ""),
-            example=_get(e, "example", ""),
-            is_strength=bool(_get(e, "is_strength", _get(e, "strength", True))),
+            competency=c.get(e, "competency", ""),
+            example=c.get(e, "example", ""),
+            is_strength=bool(c.get(e, "is_strength", c.get(e, "strength", True))),
         )
-        for e in _get(raw, "behavioral_examples", [])
+        for e in c.get(raw, "behavioral_examples", [])
     ]
-    quality = _get(raw, "communication_quality", "unknown")
+    quality = c.get(raw, "communication_quality", "unknown")
     if quality not in ("strong", "adequate", "weak", "unknown"):
+        c.bump()
         quality = "unknown"
-    return InterviewFindings(
+    findings = InterviewFindings(
         communication_quality=quality,  # type: ignore[arg-type]
-        strengths=_get(raw, "strengths", []),
-        concerns=_get(raw, "concerns", []),
+        strengths=c.get(raw, "strengths", []),
+        concerns=c.get(raw, "concerns", []),
         behavioral_examples=examples,
-        overall_impression=_get(raw, "overall_impression", ""),
+        overall_impression=c.get(raw, "overall_impression", ""),
     )
+    record_score(
+        "schema_coercion_interview",
+        float(c.count),
+        session_id=inp.workflow_run_id,
+        comment=f"defaulted {c.count} field(s) on InterviewFindings",
+    )
+    return findings
 
 
 # ── Consistency / Risk activity ───────────────────────────────────────────────
@@ -147,23 +273,60 @@ async def run_interview_insight_activity(inp: AgentActivityInput) -> InterviewFi
 @activity.defn
 async def run_consistency_check_activity(inp: AgentActivityInput) -> RiskFlags:
     activity.heartbeat()
-    raw = await run_consistency_agent(get_llm(), _all_text(inp))
-    flags = [
-        RiskFlag(
-            severity=_get(f, "severity", "low"),  # type: ignore[arg-type]
-            category=_get(f, "category", "other"),  # type: ignore[arg-type]
-            description=_get(f, "description", ""),
+    raw = await heartbeat_while(
+        run_consistency_agent(
+            get_llm(),
+            _all_text(inp),
+            trace_metadata=_analysis_trace_metadata(inp),
+            session_id=inp.workflow_run_id,
+            user_id=inp.candidate_id,
         )
-        for f in _get(raw, "flags", [])
-    ]
-    severity = _get(raw, "overall_severity", "low")
+    )
+    allowed_severities = {"low", "medium", "high"}
+    allowed_categories = {"gap", "contradiction", "inconsistency", "other"}
+    c = _CoercionCounter()
+
+    def _coerce_flag(d: dict) -> RiskFlag:
+        sev = str(c.get(d, "severity", "low")).strip().lower()
+        cat = str(c.get(d, "category", "other")).strip().lower()
+        desc = str(c.get(d, "description", "")).strip()
+
+        # Common LLM mistake: swap/misplace category into severity (e.g. "inconsistency")
+        if sev in allowed_categories and cat not in allowed_categories:
+            cat = sev
+            sev = "low"
+            c.bump()
+
+        if sev not in allowed_severities:
+            sev = "low"
+            c.bump()
+        if cat not in allowed_categories:
+            cat = "other"
+            c.bump()
+
+        return RiskFlag(
+            severity=sev,  # type: ignore[arg-type]
+            category=cat,  # type: ignore[arg-type]
+            description=desc,
+        )
+
+    flags = [_coerce_flag(f) for f in c.get(raw, "flags", [])]
+    severity = c.get(raw, "overall_severity", "low")
     if severity not in ("low", "medium", "high"):
+        c.bump()
         severity = "low"
-    return RiskFlags(
+    risk_flags = RiskFlags(
         flags=flags,
         overall_severity=severity,  # type: ignore[arg-type]
-        has_critical_issues=bool(_get(raw, "has_critical_issues", False)),
+        has_critical_issues=bool(c.get(raw, "has_critical_issues", False)),
     )
+    record_score(
+        "schema_coercion_consistency",
+        float(c.count),
+        session_id=inp.workflow_run_id,
+        comment=f"defaulted/swapped {c.count} field(s) on RiskFlags",
+    )
+    return risk_flags
 
 
 # ── Consolidation activity ────────────────────────────────────────────────────
