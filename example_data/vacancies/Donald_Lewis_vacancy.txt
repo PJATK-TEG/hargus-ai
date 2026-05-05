@@ -1,0 +1,38 @@
+**Job Title:** IT Manager - Enterprise Platform Specialist
+
+**About the Role:**
+
+We are seeking an experienced IT Manager to lead the management of our enterprise platform infrastructure, including servers, networks, and databases. The successful candidate will be responsible for ensuring the highest levels of availability, performance, and security of our IT systems, while also driving business growth through strategic technology initiatives. This is a hands-on leadership role that requires a strong technical background, excellent communication skills, and the ability to manage multiple projects and stakeholders.
+
+**Responsibilities:**
+
+* Manage and maintain the overall health and performance of our enterprise platform infrastructure, including servers, networks, and databases
+* Develop and implement strategic technology initiatives to drive business growth and improve customer experience
+* Lead cross-functional teams to resolve complex technical issues and implement new technologies
+* Collaborate with global teams to resolve IT support cases and ensure seamless operations
+* Develop and maintain processes and procedures for IT operations, including disaster recovery and business continuity planning
+* Manage budgets and resources for IT teams, including staff development and training
+* Ensure compliance with regulatory requirements and industry standards
+* Provide technical leadership and guidance to IT teams, including training and mentoring
+* Collaborate with business stakeholders to understand customer needs and develop solutions to meet those needs
+
+**Requirements:**
+
+* Bachelor's degree in Computer Science, Information Technology, or related field (Master's degree preferred)
+* 5+ years of experience in IT management, with a focus on enterprise platform infrastructure
+* Strong technical background in operating systems (Windows, Linux, etc.), networking (TCP/IP, DNS, etc.), and databases (SQL, Oracle, etc.)
+* Experience with IT service management frameworks (ITIL, etc.) and project management methodologies (Agile, Waterfall, etc.)
+* Proven track record of driving business growth through strategic technology initiatives
+* Excellent communication and leadership skills, with the ability to manage multiple projects and stakeholders
+* Experience with budgeting and resource management, including staff development and training
+* Strong analytical and problem-solving skills, with the ability to analyze complex technical issues and develop solutions
+* Certification in IT management, such as ITIL or PMP, is a plus
+
+**Desirable Skills:**
+
+* Experience with cloud-based platforms (AWS, Azure, etc.)
+* Knowledge of DevOps and continuous integration/continuous deployment (CI/CD) methodologies
+* Familiarity with cybersecurity frameworks and standards (NIST, etc.)
+* Experience with IT service management tools (ServiceNow, etc.)
+* Strong knowledge of networking protocols and architecture (TCP/IP, DNS, etc.)
+* Familiarity with database management systems (SQL, Oracle, etc.)

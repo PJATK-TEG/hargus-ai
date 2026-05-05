@@ -7,6 +7,7 @@ from io import BytesIO
 from pypdf import PdfReader
 from temporalio import activity
 
+from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.services.candidate_service import get_candidate
 from hargus_api.storage.factory import get_storage
 from hargus_api.temporal.models import (
@@ -21,13 +22,14 @@ from hargus_api.temporal.models import (
 logger = logging.getLogger(__name__)
 
 
-def _candidate_structured_text(candidate_id: str) -> str | None:
+async def _candidate_structured_text(candidate_id: str) -> str | None:
     """Serialise a candidate's parsed fields as a plain-text document.
 
     Used when no storage files exist (e.g. mock/DB-only candidates).
     Returns None when the candidate is not found.
     """
-    candidate = get_candidate(candidate_id)
+    async with AsyncSessionLocal() as session:
+        candidate = await get_candidate(session, candidate_id)
     if candidate is None:
         return None
 
@@ -104,7 +106,7 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
 
     # When no storage files found, synthesise a text document from structured data
     if not docs:
-        text = _candidate_structured_text(inp.candidate_id)
+        text = await _candidate_structured_text(inp.candidate_id)
         if text:
             synthetic_key = f"_synthetic/{inp.candidate_id}/profile.txt"
             docs.append(

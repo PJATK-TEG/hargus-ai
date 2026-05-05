@@ -29,6 +29,7 @@ BackgroundSource = Literal[
 
 
 class Vacancy(BaseModel):
+    model_config = {"populate_by_name": True}
     id: str
     title: str
     department: str
@@ -80,6 +81,7 @@ class ParsedFields(BaseModel):
 
 
 class CandidateFile(BaseModel):
+    model_config = {"populate_by_name": True}
     id: str
     type: FileType
     name: str
@@ -89,6 +91,7 @@ class CandidateFile(BaseModel):
 
 
 class Candidate(BaseModel):
+    model_config = {"populate_by_name": True}
     id: str
     name: str
     email: str

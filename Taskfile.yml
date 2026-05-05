@@ -121,3 +121,8 @@ tasks:
     desc: Stream postgres logs
     cmds:
       - docker compose logs -f postgres
+
+  ollama:start:
+    desc: Start Ollama server
+    cmds:
+      - OLLAMA_KV_CACHE_TYPE=q8_0  OLLAMA_CONTEXT_LENGTH=16384 ollama serve

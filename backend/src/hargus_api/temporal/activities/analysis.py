@@ -10,6 +10,7 @@ from hargus_api.ai.agents.consistency_agent import run_consistency_agent
 from hargus_api.ai.agents.interview_agent import run_interview_agent
 from hargus_api.ai.agents.jd_agent import run_jd_agent
 from hargus_api.ai.llm.factory import get_llm
+from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.services.candidate_service import get_vacancy
 from hargus_api.temporal.models import (
     AgentActivityInput,
@@ -49,9 +50,12 @@ def _all_text(inp: AgentActivityInput) -> str:
     return "\n\n---\n\n".join(d.raw_text for d in inp.documents)
 
 
-def _vacancy_description(inp: AgentActivityInput) -> str:
+async def _vacancy_description(inp: AgentActivityInput) -> str:
     """Fetch vacancy description from the service layer."""
-    vacancy = get_vacancy(inp.vacancy_id) if inp.vacancy_id else None
+    if not inp.vacancy_id:
+        return ""
+    async with AsyncSessionLocal() as session:
+        vacancy = await get_vacancy(session, inp.vacancy_id)
     if vacancy is None:
         return f"Vacancy ID: {inp.vacancy_id} (description unavailable)"
     requirements = ", ".join(vacancy.requirements)
@@ -71,7 +75,8 @@ def _vacancy_description(inp: AgentActivityInput) -> str:
 @activity.defn
 async def run_jd_analysis_activity(inp: AgentActivityInput) -> JobRubric:
     activity.heartbeat()
-    raw = await run_jd_agent(get_llm(), _vacancy_description(inp))
+    vac_desc = await _vacancy_description(inp)
+    raw = await run_jd_agent(get_llm(), vac_desc)
     return JobRubric(
         required_skills=_get(raw, "required_skills", []),
         preferred_skills=_get(raw, "preferred_skills", []),

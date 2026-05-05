@@ -223,3 +223,9 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+
+
+# example data
+# example_data/**
+
+.DS_Store
