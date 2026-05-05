@@ -123,16 +123,16 @@ def parse_vacancy_with_ollama(text: str, vid: int) -> dict:
         parsed = json.loads(_clean_json(res))
         return {
             "id": f"v{vid}",
-            "title": parsed.get("title", f"Vacancy {vid}"),
-            "department": parsed.get("department", "Engineering"),
-            "location": parsed.get("location", "Remote"),
-            "type": parsed.get("type", "full-time"),
+            "title": parsed.get("title") or f"Vacancy {vid}",
+            "department": parsed.get("department") or "Engineering",
+            "location": parsed.get("location") or "Remote",
+            "type": parsed.get("type") or "full-time",
             "status": "active",
-            "description": parsed.get("description", text[:1000]),
-            "requirements": parsed.get("requirements", []),
+            "description": parsed.get("description") or text[:1000],
+            "requirements": parsed.get("requirements") or [],
             "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "candidatesCount": 0,
-            "hiresTarget": parsed.get("hiresTarget", 1)
+            "hiresTarget": parsed.get("hiresTarget") or 1
         }
     except Exception as e:
         print(f"Error parsing Vacancy: {e}")
@@ -221,9 +221,9 @@ async def seed():
                 avatar_initials=initials.upper(),
                 avatar_color=random.choice(AVATAR_COLORS),
                 vacancy_id=assigned_vac["id"],
-                score=transcript_eval.get("score", 70),
-                relevancy_score=transcript_eval.get("relevancyScore", 70),
-                tags=transcript_eval.get("tags", []),
+                score=transcript_eval.get("score") or 70,
+                relevancy_score=transcript_eval.get("relevancyScore") or 70,
+                tags=transcript_eval.get("tags") or [],
                 status="interview",
                 parsed_fields=parsed_fields,
                 applied_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
