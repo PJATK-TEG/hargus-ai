@@ -5,12 +5,9 @@ import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
-
 from pypdf import PdfReader
 from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
-from sqlalchemy import delete, update
-
 from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.db.models import Vacancy, Candidate, CandidateFile, Message, DocumentChunk
 
@@ -126,29 +123,21 @@ def parse_vacancy_with_ollama(text: str, vid: int) -> dict:
         parsed = json.loads(_clean_json(res))
         return {
             "id": f"v{vid}",
-            "title": parsed.get("title") or f"Vacancy {vid}",
-            "department": parsed.get("department") or "Engineering",
-            "location": parsed.get("location") or "Remote",
-            "type": parsed.get("type") or "full-time",
+            "title": parsed.get("title", f"Vacancy {vid}"),
+            "department": parsed.get("department", "Engineering"),
+            "location": parsed.get("location", "Remote"),
+            "type": parsed.get("type", "full-time"),
             "status": "active",
-            "description": parsed.get("description") or text[:1000],
-            "requirements": parsed.get("requirements") or [],
+            "description": parsed.get("description", text[:1000]),
+            "requirements": parsed.get("requirements", []),
             "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "hiresTarget": parsed.get("hiresTarget") or 1
+            "candidatesCount": 0,
+            "hiresTarget": parsed.get("hiresTarget", 1)
         }
     except Exception as e:
         print(f"Error parsing Vacancy: {e}")
         return {
-            "id": f"v{vid}",
-            "title": f"Vacancy {vid}",
-            "department": "Engineering",
-            "location": "Remote",
-            "type": "full-time",
-            "status": "active",
-            "description": text[:1000],
-            "requirements": [],
-            "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "hiresTarget": 1,
+            "id": f"v{vid}", "title": f"Vacancy {vid}", "department": "Engineering", "location": "Remote", "type": "full-time", "status": "active", "description": text[:1000], "requirements": [], "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "candidatesCount": 0, "hiresTarget": 1
         }
 
 def evaluate_transcript_with_ollama(text: str) -> dict:
@@ -161,23 +150,16 @@ def evaluate_transcript_with_ollama(text: str) -> dict:
 
 async def seed():
     async with AsyncSessionLocal() as session:
-        # Dev seeding is idempotent: clear previously seeded entities first.
-        for model in (Message, CandidateFile, Candidate, Vacancy, DocumentChunk):
-            await session.execute(delete(model))
-        await session.commit()
-
         vac_files = glob.glob('../example_data/vacancies/*.txt')
         if not vac_files: vac_files = glob.glob('example_data/vacancies/*.txt')
              
         vacancies = []
-        vacancy_counts: dict[str, int] = {}
         for i, val in enumerate(vac_files):
             print(f"Parsing Vacancy {i+1}/{len(vac_files)} with Ollama...")
             with open(val, "r") as f:
                 vac_text = f.read()
-            vac_data = await asyncio.to_thread(parse_vacancy_with_ollama, vac_text, i + 1)
+            vac_data = parse_vacancy_with_ollama(vac_text, i+1)
             vacancies.append(vac_data)
-            vacancy_counts[vac_data["id"]] = 0
             
             vacancy = Vacancy(
                 id=vac_data["id"],
@@ -189,7 +171,7 @@ async def seed():
                 description=vac_data["description"][:1000],
                 requirements=vac_data["requirements"],
                 created_at=vac_data["createdAt"],
-                candidates_count=0,
+                candidates_count=vac_data["candidatesCount"],
                 hires_target=vac_data["hiresTarget"],
             )
             session.add(vacancy)
@@ -206,7 +188,7 @@ async def seed():
             
             print(f"Parsing CV {i+1}/{len(cv_files)}: {readable_name} with Ollama...")
             cv_text = _get_text_from_pdf(cv_path)
-            parsed_fields = await asyncio.to_thread(parse_cv_with_ollama, cv_text)
+            parsed_fields = parse_cv_with_ollama(cv_text)
             
             transcript_folder = '../example_data/interview_transcripts'
             if not os.path.exists(transcript_folder):
@@ -220,7 +202,7 @@ async def seed():
                 print(f"Parsing Transcript for {readable_name} with Ollama...")
                 with open(transcript_path, 'r') as f:
                     transcript_text = f.read()
-                transcript_eval = await asyncio.to_thread(evaluate_transcript_with_ollama, transcript_text)
+                transcript_eval = evaluate_transcript_with_ollama(transcript_text)
             
             first_name = readable_name.split()[0]
             last_name = readable_name.split()[-1] if len(readable_name.split()) > 1 else ""
@@ -228,7 +210,6 @@ async def seed():
             initials = f"{first_name[0]}{last_name[0]}" if last_name else f"{first_name[:2]}"
             
             assigned_vac = random.choice(vacancies)
-            vacancy_counts[assigned_vac["id"]] += 1
             candidate_id = f"c{i+1}"
             
             candidate = Candidate(
@@ -240,9 +221,9 @@ async def seed():
                 avatar_initials=initials.upper(),
                 avatar_color=random.choice(AVATAR_COLORS),
                 vacancy_id=assigned_vac["id"],
-                score=transcript_eval.get("score") or 70,
-                relevancy_score=transcript_eval.get("relevancyScore") or 70,
-                tags=transcript_eval.get("tags") or [],
+                score=transcript_eval.get("score", 70),
+                relevancy_score=transcript_eval.get("relevancyScore", 70),
+                tags=transcript_eval.get("tags", []),
                 status="interview",
                 parsed_fields=parsed_fields,
                 applied_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -299,13 +280,6 @@ async def seed():
                         chunk_metadata={"source": "Transcript", "filename": f"{name_only}_transcript.txt"}
                     )
                     session.add(doc_chunk)
-
-        for vac_data in vacancies:
-            await session.execute(
-                update(Vacancy)
-                .where(Vacancy.id == vac_data["id"])
-                .values(candidates_count=vacancy_counts[vac_data["id"]])
-            )
 
         await session.commit()
         print(f"Database seeded successfully with {len(cv_files)} candidates and document chunks!")
