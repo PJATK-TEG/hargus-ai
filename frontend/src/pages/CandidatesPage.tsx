@@ -1,11 +1,37 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Briefcase, ChevronRight, MapPin, Users } from 'lucide-react'
+import { Briefcase, ChevronRight, MapPin, Users, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { mockCandidates, mockVacancies } from '../data/mock'
 import ScoreRing from '../components/ScoreRing'
 import { cn, formatDate, getStatusColor, getTagColors } from '../lib/utils'
+import { api } from '../lib/api'
+import type { Candidate, Vacancy } from '../types'
 
 export default function CandidatesPage() {
+  const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [vacancies, setVacancies] = useState<Vacancy[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([api.listCandidates(), api.listVacancies()])
+      .then(([cs, vs]) => {
+        setCandidates(cs)
+        setVacancies(vs)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-aurora-purple animate-spin" />
+      </div>
+    )
+  }
+
+  const vacancyMap = Object.fromEntries(vacancies.map((v) => [v.id, v]))
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -15,9 +41,9 @@ export default function CandidatesPage() {
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Total Candidates', value: mockCandidates.length },
-          { label: 'Active Interviews', value: mockCandidates.filter((c) => c.status === 'interview').length },
-          { label: 'Offers Extended', value: mockCandidates.filter((c) => c.status === 'offer').length },
+          { label: 'Total Candidates', value: candidates.length },
+          { label: 'Active Interviews', value: candidates.filter((c) => c.status === 'interview').length },
+          { label: 'Offers Extended', value: candidates.filter((c) => c.status === 'offer').length },
         ].map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -33,8 +59,8 @@ export default function CandidatesPage() {
       </div>
 
       <div className="space-y-3">
-        {mockCandidates.map((candidate, index) => {
-          const vacancy = mockVacancies.find((item) => item.id === candidate.vacancyId)
+        {candidates.map((candidate, index) => {
+          const vacancy = vacancyMap[candidate.vacancyId]
           const statusStyle = getStatusColor(candidate.status)
 
           return (

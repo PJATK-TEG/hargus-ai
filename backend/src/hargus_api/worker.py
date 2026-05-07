@@ -4,11 +4,30 @@ import logging
 from temporalio.worker import Worker
 
 from hargus_api.config import get_settings
-from hargus_api.temporal.activities.ai_tasks import store_stub_ai_result
+from hargus_api.temporal.activities.analysis import (
+    consolidate_facts_activity,
+    run_candidate_extraction_activity,
+    run_consistency_check_activity,
+    run_interview_insight_activity,
+    run_jd_analysis_activity,
+)
+from hargus_api.temporal.activities.embedding import chunk_and_embed_activity
+from hargus_api.temporal.activities.ingestion import (
+    load_documents_activity,
+    parse_documents_activity,
+)
+from hargus_api.temporal.activities.reporting import (
+    draft_report_activity,
+    render_pdf_activity,
+    store_and_notify_activity,
+)
+from hargus_api.temporal.activities.scoring import score_candidate_activity
 from hargus_api.temporal.client import create_temporal_client
 from hargus_api.temporal.workflows.ai_tasks import AiTaskWorkflow
+from hargus_api.temporal.workflows.candidate_analysis import CandidateAnalysisWorkflow
 
-logger = logging.getLogger("hargus_api.worker")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 async def connect_temporal_with_retry(
@@ -50,11 +69,39 @@ async def connect_temporal_with_retry(
 
 async def main() -> None:
     client, settings = await connect_temporal_with_retry()
+
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[AiTaskWorkflow],
-        activities=[store_stub_ai_result],
+        workflows=[
+            CandidateAnalysisWorkflow,
+            AiTaskWorkflow,  # kept for backwards compat
+        ],
+        activities=[
+            # Ingestion
+            load_documents_activity,
+            parse_documents_activity,
+            # Embedding
+            chunk_and_embed_activity,
+            # Analysis
+            run_jd_analysis_activity,
+            run_candidate_extraction_activity,
+            run_interview_insight_activity,
+            run_consistency_check_activity,
+            consolidate_facts_activity,
+            # Scoring
+            score_candidate_activity,
+            # Reporting
+            draft_report_activity,
+            render_pdf_activity,
+            store_and_notify_activity,
+        ],
+    )
+
+    logger.info(
+        "Worker started — queue=%s temporal=%s",
+        settings.temporal_task_queue,
+        settings.temporal_server_url,
     )
     await worker.run()
 

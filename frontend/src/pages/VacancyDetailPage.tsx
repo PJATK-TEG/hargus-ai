@@ -1,14 +1,38 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, Users, ChevronRight, ExternalLink } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Users, ChevronRight, ExternalLink, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { mockVacancies, mockCandidates } from '../data/mock'
 import { formatDate, getStatusColor, getTagColors, cn } from '../lib/utils'
+import { api } from '../lib/api'
 import ScoreRing from '../components/ScoreRing'
+import type { Vacancy, Candidate } from '../types'
 
 export default function VacancyDetailPage() {
   const { vacancyId } = useParams<{ vacancyId: string }>()
-  const vacancy = mockVacancies.find((v) => v.id === vacancyId)
-  const candidates = mockCandidates.filter((c) => c.vacancyId === vacancyId)
+  const [vacancy, setVacancy] = useState<Vacancy | null>(null)
+  const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      api.getVacancy(vacancyId!),
+      api.listVacancyCandidates(vacancyId!),
+    ])
+      .then(([v, cs]) => {
+        setVacancy(v)
+        setCandidates(cs)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [vacancyId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-aurora-purple animate-spin" />
+      </div>
+    )
+  }
 
   if (!vacancy) {
     return (
@@ -102,7 +126,6 @@ export default function VacancyDetailPage() {
                   to={`/vacancies/${vacancyId}/candidates/${candidate.id}`}
                   className="glass-card glass-card-hover rounded-2xl p-5 flex items-center gap-5 group block"
                 >
-                  {/* Avatar */}
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
                     style={{ backgroundColor: candidate.avatarColor + '30', color: candidate.avatarColor }}
@@ -110,7 +133,6 @@ export default function VacancyDetailPage() {
                     {candidate.avatarInitials}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="text-[15px] font-semibold text-white group-hover:text-aurora-violet transition-colors">
@@ -139,7 +161,6 @@ export default function VacancyDetailPage() {
                     </div>
                   </div>
 
-                  {/* Score */}
                   <div className="flex items-center gap-5 flex-shrink-0">
                     <ScoreRing score={candidate.score} size={56} strokeWidth={4} label="Score" />
                     <ScoreRing score={candidate.relevancyScore} size={56} strokeWidth={4} label="Relevancy" />

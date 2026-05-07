@@ -1,16 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Briefcase, MapPin, Clock, Users, ChevronRight, Target } from 'lucide-react'
+import { Plus, Briefcase, MapPin, Clock, Users, ChevronRight, Target, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { mockVacancies } from '../data/mock'
 import { formatDate, getStatusColor, cn } from '../lib/utils'
+import { api } from '../lib/api'
 import CreateVacancyModal from '../components/CreateVacancyModal'
 import type { Vacancy } from '../types'
 
 export default function VacanciesPage() {
-  const [vacancies, setVacancies] = useState<Vacancy[]>(mockVacancies)
+  const [vacancies, setVacancies] = useState<Vacancy[]>([])
+  const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+
+  useEffect(() => {
+    api.listVacancies()
+      .then(setVacancies)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-aurora-purple animate-spin" />
+      </div>
+    )
+  }
 
   const filtered = filterStatus === 'all' ? vacancies : vacancies.filter((v) => v.status === filterStatus)
 
@@ -90,12 +106,10 @@ export default function VacanciesPage() {
                 to={`/vacancies/${vacancy.id}`}
                 className="glass-card glass-card-hover rounded-2xl p-5 flex items-center gap-6 group block"
               >
-                {/* Icon */}
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-aurora-purple/20 to-aurora-indigo/10 border border-aurora-purple/20 flex items-center justify-center flex-shrink-0">
                   <Briefcase className="w-5 h-5 text-aurora-violet" />
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1.5">
                     <h3 className="text-[15px] font-semibold text-white group-hover:text-aurora-violet transition-colors truncate">
@@ -119,7 +133,6 @@ export default function VacanciesPage() {
                   </div>
                 </div>
 
-                {/* Stats */}
                 <div className="flex items-center gap-8 flex-shrink-0">
                   <div className="text-right">
                     <p className="text-lg font-bold text-white">{vacancy.candidatesCount}</p>

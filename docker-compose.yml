@@ -1,10 +1,10 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     environment:
+      POSTGRES_DB: hargus
       POSTGRES_USER: hargus
       POSTGRES_PASSWORD: hargus
-      POSTGRES_DB: hargus
     ports:
       - "5432:5432"
     volumes:
@@ -15,6 +15,79 @@ services:
       timeout: 5s
       retries: 10
 
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: hargus
+      POSTGRES_PWD: hargus
+      POSTGRES_SEEDS: postgres
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+
+  langfuse:
+    image: langfuse/langfuse:2
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/langfuse
+      NEXTAUTH_SECRET: dev-secret-change-in-prod
+      NEXTAUTH_URL: http://localhost:3001
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+    ports:
+      - "3001:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/public/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   api:
     build:
       context: .
@@ -22,19 +95,64 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      temporal:
+        condition: service_healthy
     environment:
       HARGUS_ENVIRONMENT: docker
       HARGUS_FRONTEND_ORIGIN: http://localhost:3000
-      HARGUS_TEMPORAL_ENABLED: "false"
+      HARGUS_DATABASE_URL: postgresql+asyncpg://hargus:hargus@postgres:5432/hargus
+      HARGUS_TEMPORAL_ENABLED: "true"
       HARGUS_TEMPORAL_SERVER_URL: temporal:7233
       HARGUS_TEMPORAL_NAMESPACE: default
       HARGUS_TEMPORAL_TASK_QUEUE: hargus-ai
-      HARGUS_DATABASE_URL: postgresql://hargus:hargus@postgres:5432/hargus
+      HARGUS_STORAGE_BACKEND: s3
+      HARGUS_S3_BUCKET: hargus
+      HARGUS_S3_ENDPOINT_URL: http://minio:9000
+      HARGUS_AWS_ACCESS_KEY_ID: minioadmin
+      HARGUS_AWS_SECRET_ACCESS_KEY: minioadmin
+      HARGUS_AWS_REGION: us-east-1
+      HARGUS_LLM_PROVIDER: ollama
+      HARGUS_LLM_MODEL: llama3.1
+      HARGUS_EMBEDDING_PROVIDER: ollama
+      HARGUS_EMBEDDING_MODEL: nomic-embed-text
+      HARGUS_OLLAMA_BASE_URL: http://ollama:11434
+      HARGUS_LANGFUSE_ENABLED: "false"
+      HARGUS_LANGFUSE_HOST: http://langfuse:3000
     ports:
       - "8000:8000"
 
-  # Temporal can be added later by turning HARGUS_TEMPORAL_ENABLED=true
-  # and pointing HARGUS_TEMPORAL_SERVER_URL at your Temporal deployment.
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "hargus_api.worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      HARGUS_ENVIRONMENT: docker
+      HARGUS_DATABASE_URL: postgresql+asyncpg://hargus:hargus@postgres:5432/hargus
+      HARGUS_TEMPORAL_ENABLED: "true"
+      HARGUS_TEMPORAL_SERVER_URL: temporal:7233
+      HARGUS_TEMPORAL_NAMESPACE: default
+      HARGUS_TEMPORAL_TASK_QUEUE: hargus-ai
+      HARGUS_STORAGE_BACKEND: s3
+      HARGUS_S3_BUCKET: hargus
+      HARGUS_S3_ENDPOINT_URL: http://minio:9000
+      HARGUS_AWS_ACCESS_KEY_ID: minioadmin
+      HARGUS_AWS_SECRET_ACCESS_KEY: minioadmin
+      HARGUS_AWS_REGION: us-east-1
+      HARGUS_LLM_PROVIDER: ollama
+      HARGUS_LLM_MODEL: llama3.1
+      HARGUS_EMBEDDING_PROVIDER: ollama
+      HARGUS_EMBEDDING_MODEL: nomic-embed-text
+      HARGUS_OLLAMA_BASE_URL: http://ollama:11434
+      HARGUS_LANGFUSE_ENABLED: "false"
+      HARGUS_LANGFUSE_HOST: http://langfuse:3000
 
 volumes:
   postgres_data:
+  minio_data:
+  ollama_data:

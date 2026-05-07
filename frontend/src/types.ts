@@ -81,6 +81,18 @@ export interface Candidate {
   linkedinUrl?: string
 }
 
+export interface AnalysisReport {
+  id: string
+  candidateId: string
+  vacancyId: string
+  overallScore: number
+  skillMatchScore: number
+  experienceScore: number
+  recommendation: string
+  hasPdf: boolean
+  createdAt: string
+}
+
 export interface Message {
   id: string
   role: 'user' | 'assistant'
