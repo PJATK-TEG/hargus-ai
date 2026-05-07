@@ -97,7 +97,7 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
                     source_type=source_type,  # type: ignore[arg-type]
                     storage_key=key,
                     filename=key.split("/")[-1],
-                    size_bytes=-1,  # unknown at this stage; resolved only when bytes are downloaded
+                    size_bytes=None,
                 )
             )
     except Exception:

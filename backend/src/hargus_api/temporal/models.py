@@ -29,7 +29,7 @@ class RawDocument(BaseModel):
     source_type: Literal["cv", "transcript", "notes", "background"]
     storage_key: str
     filename: str
-    size_bytes: int
+    size_bytes: int | None
     inline_text: str | None = None
 
 

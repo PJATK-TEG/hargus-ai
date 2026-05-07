@@ -288,7 +288,7 @@ async def seed():
                         content=chunk_content,
                         chunk_metadata={"source": "Transcript", "filename": f"{name_only}_transcript.txt"}
                     )
-                session.add(doc_chunk)
+                    session.add(doc_chunk)
 
         for vac_data in vacancies:
             await session.execute(

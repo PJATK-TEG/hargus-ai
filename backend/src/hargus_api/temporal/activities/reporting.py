@@ -27,6 +27,7 @@ from hargus_api.temporal.models import (
 )
 
 logger = logging.getLogger(__name__)
+MAX_ERROR_MESSAGE_LENGTH = 2000
 
 
 def _update_ai_task_status_sync(
@@ -183,10 +184,10 @@ async def mark_task_failed_activity(inp: MarkTaskFailedInput) -> None:
         repo = WorkflowRunRepository(session)
         run = await repo.get_by_workflow_id(inp.workflow_run_id)
         if run is not None:
-            await repo.set_failed(run.id, inp.error_message[:2000])
+            await repo.set_failed(run.id, inp.error_message[:MAX_ERROR_MESSAGE_LENGTH])
             await session.commit()
     await _update_ai_task_status(
         inp.workflow_run_id,
         "failed",
-        {"error": inp.error_message[:2000]},
+        {"error": inp.error_message[:MAX_ERROR_MESSAGE_LENGTH]},
     )
