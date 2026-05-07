@@ -9,6 +9,10 @@ from psycopg.rows import dict_row
 from hargus_api.schemas.domain import AiTaskRecord
 
 
+def normalize_postgres_url(database_url: str) -> str:
+    return database_url.replace("+asyncpg", "").replace("+psycopg2", "")
+
+
 class InMemoryAiTaskRepository:
     def __init__(self) -> None:
         self._tasks: dict[str, AiTaskRecord] = {}

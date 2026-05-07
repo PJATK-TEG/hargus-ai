@@ -15,6 +15,7 @@ from hargus_api.ai.llm.factory import get_llm
 from hargus_api.config import get_settings
 from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
+from hargus_api.repositories.ai_task_repository import normalize_postgres_url
 from hargus_api.storage.factory import get_storage
 from hargus_api.temporal.models import (
     MarkTaskFailedInput,
@@ -33,7 +34,7 @@ def _update_ai_task_status_sync(
     status: str,
     result: dict[str, str] | None = None,
 ) -> None:
-    url = get_settings().database_url.replace("+asyncpg", "").replace("+psycopg2", "")
+    url = normalize_postgres_url(get_settings().database_url)
     with psycopg.connect(url) as conn:
         with conn.cursor() as cur:
             cur.execute(
