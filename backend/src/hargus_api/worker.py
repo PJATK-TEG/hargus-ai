@@ -18,6 +18,7 @@ from hargus_api.temporal.activities.ingestion import (
 )
 from hargus_api.temporal.activities.reporting import (
     draft_report_activity,
+    mark_task_failed_activity,
     render_pdf_activity,
     store_and_notify_activity,
 )
@@ -95,6 +96,7 @@ async def main() -> None:
             draft_report_activity,
             render_pdf_activity,
             store_and_notify_activity,
+            mark_task_failed_activity,
         ],
     )
 

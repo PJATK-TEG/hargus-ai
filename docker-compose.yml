@@ -51,11 +51,12 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/langfuse
+      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/hargus
       NEXTAUTH_SECRET: dev-secret-change-in-prod
       NEXTAUTH_URL: http://localhost:3001
       TELEMETRY_ENABLED: "false"
       LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+      SALT: changeme
     ports:
       - "3001:3000"
     healthcheck:
@@ -81,12 +82,12 @@ services:
       timeout: 5s
       retries: 5
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
 
   api:
     build:
@@ -112,10 +113,10 @@ services:
       HARGUS_AWS_SECRET_ACCESS_KEY: minioadmin
       HARGUS_AWS_REGION: us-east-1
       HARGUS_LLM_PROVIDER: ollama
-      HARGUS_LLM_MODEL: llama3.1
+      HARGUS_LLM_MODEL: llama3.1:8b
       HARGUS_EMBEDDING_PROVIDER: ollama
       HARGUS_EMBEDDING_MODEL: nomic-embed-text
-      HARGUS_OLLAMA_BASE_URL: http://ollama:11434
+      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
       HARGUS_LANGFUSE_ENABLED: "false"
       HARGUS_LANGFUSE_HOST: http://langfuse:3000
     ports:
@@ -145,10 +146,10 @@ services:
       HARGUS_AWS_SECRET_ACCESS_KEY: minioadmin
       HARGUS_AWS_REGION: us-east-1
       HARGUS_LLM_PROVIDER: ollama
-      HARGUS_LLM_MODEL: llama3.1
+      HARGUS_LLM_MODEL: llama3.1:8b
       HARGUS_EMBEDDING_PROVIDER: ollama
       HARGUS_EMBEDDING_MODEL: nomic-embed-text
-      HARGUS_OLLAMA_BASE_URL: http://ollama:11434
+      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
       HARGUS_LANGFUSE_ENABLED: "false"
       HARGUS_LANGFUSE_HOST: http://langfuse:3000
 

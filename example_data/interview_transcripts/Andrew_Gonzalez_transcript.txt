@@ -1,0 +1,27 @@
+Here is a realistic interview transcript based on the provided CV text:
+
+**Interviewer:** Good morning, thank you for coming in today. Can you start by telling me a little bit about your background and experience with ASP.NET web development?
+
+**Candidate:** Good morning, thank you for having me. I have a Master's degree in Computer Science from Indiana University, and I've been working as an ASP.NET web developer for about 6 years now. I've had the opportunity to work on several projects, including the migration of the IU Print website from ColdFusion to ASP.NET, and the development of the Supplier Portal using SharePoint 2010 and ASP.NET.
+
+**Interviewer:** That's impressive. Can you walk me through the process of migrating the IU Print website from ColdFusion to ASP.NET? What were some of the challenges you faced, and how did you overcome them?
+
+**Candidate:** Sure. The migration process involved several steps, including assessing the existing application, refactoring the code, and implementing the new ASP.NET framework. One of the biggest challenges we faced was ensuring that the new application met the same performance and scalability requirements as the original ColdFusion application. To overcome this, we used load testing and performance monitoring tools to identify areas for improvement and optimize the application accordingly.
+
+**Interviewer:** That sounds like a complex task. Can you tell me about a time when you had to debug a difficult issue with an ASP.NET application? How did you go about troubleshooting the problem?
+
+**Candidate:** Ah, yes. One time, I was working on the DEBTS project, and we encountered an issue where the application was experiencing intermittent errors when connecting to the SFTP server. I used a combination of tools, including the ASP.NET logging and tracing features, as well as third-party debugging tools, to identify the root cause of the problem. After some investigation, I discovered that the issue was due to a configuration setting that was causing the application to timeout when connecting to the SFTP server. Once I corrected the configuration setting, the problem was resolved.
+
+**Interviewer:** Excellent troubleshooting skills. Can you tell me about your experience with version control systems, such as Team Foundation Server or GitHub? How do you use these tools in your development workflow?
+
+**Candidate:** Absolutely. I've had experience with both Team Foundation Server and GitHub. I use these tools to manage my code, track changes, and collaborate with other developers. In my current role, I use Team Foundation Server to manage the code repository and track changes. I also use GitHub to manage open-source projects and collaborate with other developers.
+
+**Interviewer:** Great. Finally, can you tell me about a project you worked on that you're particularly proud of? What was your role in the project, and what were some of the challenges you faced?
+
+**Candidate:** One project I'm particularly proud of is the Supplier Portal. My role was to design and develop the user interface and user experience for the application. One of the challenges we faced was integrating the application with the existing SharePoint 2010 platform, as well as ensuring that the application met the required security and access controls. I worked closely with the project manager and other team members to ensure that the application met the requirements and was successfully deployed.
+
+**Interviewer:** Excellent. Thank you for sharing your experiences with me today. Do you have any questions for me?
+
+**Candidate:** Yes, actually. Can you tell me more about the team I would be working with, and what the goals and objectives of the project are?
+
+**Interviewer:** Absolutely. I'd be happy to answer any questions you have. Thank you again for coming in today.

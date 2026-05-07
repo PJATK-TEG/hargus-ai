@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 
 from langchain_core.documents import Document
 from langchain_postgres import PGVector
@@ -16,6 +17,7 @@ from hargus_api.temporal.models import ChunkEmbedInput, ChunkEmbedOutput
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=1)
 def _pgvector_engine() -> AsyncEngine:
     """Return a psycopg3 async engine for PGVector.
 

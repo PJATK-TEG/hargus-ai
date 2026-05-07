@@ -29,7 +29,8 @@ class RawDocument(BaseModel):
     source_type: Literal["cv", "transcript", "notes", "background"]
     storage_key: str
     filename: str
-    size_bytes: int
+    size_bytes: int | None
+    inline_text: str | None = None
 
 
 class LoadDocumentsInput(BaseModel):
@@ -222,3 +223,8 @@ class StoreResultInput(BaseModel):
     report: ReportDraft
     score: ScoringResult
     pdf: PDFOutput | None
+
+
+class MarkTaskFailedInput(BaseModel):
+    workflow_run_id: str
+    error_message: str

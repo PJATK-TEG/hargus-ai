@@ -11,6 +11,7 @@ from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
 from hargus_api.repositories.ai_task_repository import (
     InMemoryAiTaskRepository,
     PostgresAiTaskRepository,
+    normalize_postgres_url,
 )
 from hargus_api.schemas.domain import AiTaskRecord, AiTaskRequest
 from hargus_api.temporal.client import create_temporal_client
@@ -36,7 +37,7 @@ class AiTaskService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         # psycopg.connect needs a plain postgresql:// URL; strip SQLAlchemy driver suffixes.
-        psycopg_url = settings.database_url.replace("+asyncpg", "").replace("+psycopg2", "")
+        psycopg_url = normalize_postgres_url(settings.database_url)
         if psycopg_url not in _POSTGRES_REPOSITORIES:
             try:
                 _POSTGRES_REPOSITORIES[psycopg_url] = PostgresAiTaskRepository(psycopg_url)

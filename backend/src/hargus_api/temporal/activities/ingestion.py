@@ -7,6 +7,7 @@ from io import BytesIO
 from pypdf import PdfReader
 from temporalio import activity
 
+from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.services.candidate_service import get_candidate
 from hargus_api.storage.factory import get_storage
 from hargus_api.temporal.models import (
@@ -21,13 +22,14 @@ from hargus_api.temporal.models import (
 logger = logging.getLogger(__name__)
 
 
-def _candidate_structured_text(candidate_id: str) -> str | None:
+async def _candidate_structured_text(candidate_id: str) -> str | None:
     """Serialise a candidate's parsed fields as a plain-text document.
 
     Used when no storage files exist (e.g. mock/DB-only candidates).
     Returns None when the candidate is not found.
     """
-    candidate = get_candidate(candidate_id)
+    async with AsyncSessionLocal() as session:
+        candidate = await get_candidate(session, candidate_id)
     if candidate is None:
         return None
 
@@ -90,13 +92,12 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
                 source_type = "notes"
             elif "/background/" in key:
                 source_type = "background"
-            data = await storage.download(key)
             docs.append(
                 RawDocument(
                     source_type=source_type,  # type: ignore[arg-type]
                     storage_key=key,
                     filename=key.split("/")[-1],
-                    size_bytes=len(data),
+                    size_bytes=None,
                 )
             )
     except Exception:
@@ -104,7 +105,7 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
 
     # When no storage files found, synthesise a text document from structured data
     if not docs:
-        text = _candidate_structured_text(inp.candidate_id)
+        text = await _candidate_structured_text(inp.candidate_id)
         if text:
             synthetic_key = f"_synthetic/{inp.candidate_id}/profile.txt"
             docs.append(
@@ -113,10 +114,9 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
                     storage_key=synthetic_key,
                     filename="profile.txt",
                     size_bytes=len(text.encode()),
+                    inline_text=text,
                 )
             )
-            # Stash text so parse_activity can find it without a real storage call
-            _SYNTHETIC_TEXTS[synthetic_key] = text
             logger.info(
                 "load_documents: candidate=%s using synthetic profile (%d chars)",
                 inp.candidate_id,
@@ -127,11 +127,6 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
         "load_documents: candidate=%s loaded=%d docs", inp.candidate_id, len(docs)
     )
     return LoadDocumentsOutput(documents=docs)
-
-
-# In-process cache for synthetic text documents so parse_activity can access them
-# without a real storage round-trip.
-_SYNTHETIC_TEXTS: dict[str, str] = {}
 
 
 def _extract_text(data: bytes, filename: str) -> tuple[str, int]:
@@ -152,9 +147,8 @@ async def parse_documents_activity(inp: ParseDocumentsInput) -> ParseDocumentsOu
 
     for raw in inp.documents:
         try:
-            # Check the in-process synthetic cache first
-            if raw.storage_key in _SYNTHETIC_TEXTS:
-                text = _SYNTHETIC_TEXTS[raw.storage_key]
+            if raw.inline_text is not None:
+                text = raw.inline_text
                 page_count = 1
             else:
                 data = await storage.download(raw.storage_key)
