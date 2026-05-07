@@ -134,13 +134,13 @@ def parse_vacancy_with_ollama(text: str, vid: int) -> dict:
             "description": parsed.get("description") or text[:1000],
             "requirements": parsed.get("requirements") or [],
             "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "candidatesCount": 0,
+            "candidates_count": 0,
             "hiresTarget": parsed.get("hiresTarget") or 1
         }
     except Exception as e:
         print(f"Error parsing Vacancy: {e}")
         return {
-            "id": f"v{vid}", "title": f"Vacancy {vid}", "department": "Engineering", "location": "Remote", "type": "full-time", "status": "active", "description": text[:1000], "requirements": [], "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "candidatesCount": 0, "hiresTarget": 1
+            "id": f"v{vid}", "title": f"Vacancy {vid}", "department": "Engineering", "location": "Remote", "type": "full-time", "status": "active", "description": text[:1000], "requirements": [], "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "candidates_count": 0, "hiresTarget": 1
         }
 
 def evaluate_transcript_with_ollama(text: str) -> dict:
@@ -179,7 +179,7 @@ async def seed():
                 description=vac_data["description"][:1000],
                 requirements=vac_data["requirements"],
                 created_at=vac_data["createdAt"],
-                candidates_count=vac_data["candidatesCount"],
+                candidates_count=vac_data["candidates_count"],
                 hires_target=vac_data["hiresTarget"],
             )
             session.add(vacancy)
@@ -218,7 +218,7 @@ async def seed():
             initials = f"{first_name[0]}{last_name[0]}" if last_name else f"{first_name[:2]}"
             
             assigned_vac = random.choice(vacancies)
-            assigned_vac["candidatesCount"] += 1
+            assigned_vac["candidates_count"] += 1
             candidate_id = f"c{i+1}"
             
             candidate = Candidate(
@@ -294,7 +294,7 @@ async def seed():
             await session.execute(
                 update(Vacancy)
                 .where(Vacancy.id == vac_data["id"])
-                .values(candidates_count=vac_data["candidatesCount"])
+                .values(candidates_count=vac_data["candidates_count"])
             )
 
         await session.commit()

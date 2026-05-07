@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 MAX_ERROR_MESSAGE_LENGTH = 2000
 
 
-def _update_ai_task_status_sync(
+def _update_ai_task_status_blocking(
     workflow_run_id: str,
     status: str,
     result: dict[str, str] | None = None,
@@ -60,7 +60,7 @@ async def _update_ai_task_status(
 ) -> None:
     try:
         await asyncio.to_thread(
-            _update_ai_task_status_sync,
+            _update_ai_task_status_blocking,
             workflow_run_id,
             status,
             result,
@@ -157,7 +157,7 @@ async def store_and_notify_activity(inp: StoreResultInput) -> None:
         run = await repo.get_by_workflow_id(inp.workflow_run_id)
         if run is None:
             logger.warning("store_and_notify: workflow run not found: %s", inp.workflow_run_id)
-        else:
+        if run is not None:
             await repo.save_report(
                 workflow_run_id=run.id,
                 candidate_id=inp.candidate_id,
