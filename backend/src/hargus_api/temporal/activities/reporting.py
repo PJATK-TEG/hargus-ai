@@ -157,7 +157,7 @@ async def store_and_notify_activity(inp: StoreResultInput) -> None:
         run = await repo.get_by_workflow_id(inp.workflow_run_id)
         if run is None:
             logger.warning("store_and_notify: workflow run not found: %s", inp.workflow_run_id)
-        if run is not None:
+        else:
             await repo.save_report(
                 workflow_run_id=run.id,
                 candidate_id=inp.candidate_id,

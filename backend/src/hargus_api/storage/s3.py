@@ -44,8 +44,8 @@ class S3Storage(StorageBackend):
             code = e.response["Error"]["Code"]
             if code in ("404", "NoSuchBucket"):
                 self._client.create_bucket(Bucket=self._bucket)
-                return
-            raise
+            else:
+                raise
 
     async def _ensure_bucket_async(self) -> None:
         if self._bucket_ensured:

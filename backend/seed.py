@@ -134,13 +134,21 @@ def parse_vacancy_with_ollama(text: str, vid: int) -> dict:
             "description": parsed.get("description") or text[:1000],
             "requirements": parsed.get("requirements") or [],
             "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "candidates_count": 0,
             "hiresTarget": parsed.get("hiresTarget") or 1
         }
     except Exception as e:
         print(f"Error parsing Vacancy: {e}")
         return {
-            "id": f"v{vid}", "title": f"Vacancy {vid}", "department": "Engineering", "location": "Remote", "type": "full-time", "status": "active", "description": text[:1000], "requirements": [], "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "candidates_count": 0, "hiresTarget": 1
+            "id": f"v{vid}",
+            "title": f"Vacancy {vid}",
+            "department": "Engineering",
+            "location": "Remote",
+            "type": "full-time",
+            "status": "active",
+            "description": text[:1000],
+            "requirements": [],
+            "createdAt": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "hiresTarget": 1,
         }
 
 def evaluate_transcript_with_ollama(text: str) -> dict:
@@ -162,12 +170,14 @@ async def seed():
         if not vac_files: vac_files = glob.glob('example_data/vacancies/*.txt')
              
         vacancies = []
+        vacancy_counts: dict[str, int] = {}
         for i, val in enumerate(vac_files):
             print(f"Parsing Vacancy {i+1}/{len(vac_files)} with Ollama...")
             with open(val, "r") as f:
                 vac_text = f.read()
             vac_data = await asyncio.to_thread(parse_vacancy_with_ollama, vac_text, i + 1)
             vacancies.append(vac_data)
+            vacancy_counts[vac_data["id"]] = 0
             
             vacancy = Vacancy(
                 id=vac_data["id"],
@@ -179,7 +189,7 @@ async def seed():
                 description=vac_data["description"][:1000],
                 requirements=vac_data["requirements"],
                 created_at=vac_data["createdAt"],
-                candidates_count=vac_data["candidates_count"],
+                candidates_count=0,
                 hires_target=vac_data["hiresTarget"],
             )
             session.add(vacancy)
@@ -218,7 +228,7 @@ async def seed():
             initials = f"{first_name[0]}{last_name[0]}" if last_name else f"{first_name[:2]}"
             
             assigned_vac = random.choice(vacancies)
-            assigned_vac["candidates_count"] += 1
+            vacancy_counts[assigned_vac["id"]] += 1
             candidate_id = f"c{i+1}"
             
             candidate = Candidate(
@@ -294,7 +304,7 @@ async def seed():
             await session.execute(
                 update(Vacancy)
                 .where(Vacancy.id == vac_data["id"])
-                .values(candidates_count=vac_data["candidates_count"])
+                .values(candidates_count=vacancy_counts[vac_data["id"]])
             )
 
         await session.commit()
