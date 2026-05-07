@@ -92,13 +92,12 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
                 source_type = "notes"
             elif "/background/" in key:
                 source_type = "background"
-            data = await storage.download(key)
             docs.append(
                 RawDocument(
                     source_type=source_type,  # type: ignore[arg-type]
                     storage_key=key,
                     filename=key.split("/")[-1],
-                    size_bytes=len(data),
+                    size_bytes=0,
                 )
             )
     except Exception:
@@ -115,10 +114,9 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
                     storage_key=synthetic_key,
                     filename="profile.txt",
                     size_bytes=len(text.encode()),
+                    inline_text=text,
                 )
             )
-            # Stash text so parse_activity can find it without a real storage call
-            _SYNTHETIC_TEXTS[synthetic_key] = text
             logger.info(
                 "load_documents: candidate=%s using synthetic profile (%d chars)",
                 inp.candidate_id,
@@ -129,11 +127,6 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
         "load_documents: candidate=%s loaded=%d docs", inp.candidate_id, len(docs)
     )
     return LoadDocumentsOutput(documents=docs)
-
-
-# In-process cache for synthetic text documents so parse_activity can access them
-# without a real storage round-trip.
-_SYNTHETIC_TEXTS: dict[str, str] = {}
 
 
 def _extract_text(data: bytes, filename: str) -> tuple[str, int]:
@@ -154,9 +147,8 @@ async def parse_documents_activity(inp: ParseDocumentsInput) -> ParseDocumentsOu
 
     for raw in inp.documents:
         try:
-            # Check the in-process synthetic cache first
-            if raw.storage_key in _SYNTHETIC_TEXTS:
-                text = _SYNTHETIC_TEXTS[raw.storage_key]
+            if raw.inline_text is not None:
+                text = raw.inline_text
                 page_count = 1
             else:
                 data = await storage.download(raw.storage_key)

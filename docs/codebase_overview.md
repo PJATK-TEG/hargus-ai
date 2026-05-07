@@ -2,11 +2,11 @@
 
 ## Current Shape
 
-- `frontend/` — React + Vite + TypeScript dashboard. Supports two modes: **Demo** (static mock data) and **Live** (real API calls to the backend). Switched via `VITE_MODE` env var.
+- `frontend/` — React + Vite + TypeScript dashboard using live API calls to the backend.
 - `backend/` — FastAPI API + Temporal worker implementing a full AI candidate analysis pipeline (LangGraph agents, pgvector embeddings, PDF reports, S3/local storage).
 - `docs/` — architecture diagrams and overview docs.
 - `Taskfile.yml` — common repo tasks for frontend, backend, Docker, and Alembic migrations.
-- `docker-compose.yml` — full local stack: Postgres (pgvector), Temporal + UI, Langfuse, MinIO, Ollama, API service.
+- `docker-compose.yml` — full local stack: Postgres (pgvector), Temporal + UI, Langfuse, MinIO, API service.
 
 ## Product Model
 
@@ -20,18 +20,12 @@ The repo centers on a recruiting workflow:
 
 ## Frontend
 
-The frontend has two operating modes controlled by the `VITE_MODE` environment variable:
-
-| `VITE_MODE` | Behaviour |
-|-------------|-----------|
-| `DEMO` | Uses static mock data from `src/data/mock.ts` — no backend required |
-| _(unset)_ | Makes real API calls to the backend at `VITE_API_URL` |
+The frontend makes real API calls to the backend at `VITE_API_URL`.
 
 Key files:
-- `src/lib/mode.ts` — exports `isDemoMode` flag
 - `src/lib/api.ts` — typed fetch client for all backend endpoints
-- `src/vite-env.d.ts` — Vite env type declarations (`VITE_MODE`, `VITE_API_URL`)
-- `src/pages/` — all pages support both modes; live mode fetches on mount
+- `src/vite-env.d.ts` — Vite env type declarations (`VITE_API_URL`)
+- `src/pages/` — pages fetch data on mount
 
 ## Backend
 

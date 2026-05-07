@@ -5,9 +5,12 @@ import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
+
 from pypdf import PdfReader
 from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
+from sqlalchemy import delete, update
+
 from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.db.models import Vacancy, Candidate, CandidateFile, Message, DocumentChunk
 
@@ -150,6 +153,11 @@ def evaluate_transcript_with_ollama(text: str) -> dict:
 
 async def seed():
     async with AsyncSessionLocal() as session:
+        # Dev seeding is idempotent: clear previously seeded entities first.
+        for model in (Message, CandidateFile, Candidate, Vacancy, DocumentChunk):
+            await session.execute(delete(model))
+        await session.commit()
+
         vac_files = glob.glob('../example_data/vacancies/*.txt')
         if not vac_files: vac_files = glob.glob('example_data/vacancies/*.txt')
              
@@ -158,7 +166,7 @@ async def seed():
             print(f"Parsing Vacancy {i+1}/{len(vac_files)} with Ollama...")
             with open(val, "r") as f:
                 vac_text = f.read()
-            vac_data = parse_vacancy_with_ollama(vac_text, i+1)
+            vac_data = await asyncio.to_thread(parse_vacancy_with_ollama, vac_text, i + 1)
             vacancies.append(vac_data)
             
             vacancy = Vacancy(
@@ -188,7 +196,7 @@ async def seed():
             
             print(f"Parsing CV {i+1}/{len(cv_files)}: {readable_name} with Ollama...")
             cv_text = _get_text_from_pdf(cv_path)
-            parsed_fields = parse_cv_with_ollama(cv_text)
+            parsed_fields = await asyncio.to_thread(parse_cv_with_ollama, cv_text)
             
             transcript_folder = '../example_data/interview_transcripts'
             if not os.path.exists(transcript_folder):
@@ -202,7 +210,7 @@ async def seed():
                 print(f"Parsing Transcript for {readable_name} with Ollama...")
                 with open(transcript_path, 'r') as f:
                     transcript_text = f.read()
-                transcript_eval = evaluate_transcript_with_ollama(transcript_text)
+                transcript_eval = await asyncio.to_thread(evaluate_transcript_with_ollama, transcript_text)
             
             first_name = readable_name.split()[0]
             last_name = readable_name.split()[-1] if len(readable_name.split()) > 1 else ""
@@ -210,6 +218,7 @@ async def seed():
             initials = f"{first_name[0]}{last_name[0]}" if last_name else f"{first_name[:2]}"
             
             assigned_vac = random.choice(vacancies)
+            assigned_vac["candidatesCount"] += 1
             candidate_id = f"c{i+1}"
             
             candidate = Candidate(
@@ -279,7 +288,14 @@ async def seed():
                         content=chunk_content,
                         chunk_metadata={"source": "Transcript", "filename": f"{name_only}_transcript.txt"}
                     )
-                    session.add(doc_chunk)
+                session.add(doc_chunk)
+
+        for vac_data in vacancies:
+            await session.execute(
+                update(Vacancy)
+                .where(Vacancy.id == vac_data["id"])
+                .values(candidates_count=vac_data["candidatesCount"])
+            )
 
         await session.commit()
         print(f"Database seeded successfully with {len(cv_files)} candidates and document chunks!")

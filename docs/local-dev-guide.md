@@ -11,7 +11,7 @@
 ## Step 1 — Start infrastructure
 
 ```bash
-docker compose up -d postgres temporal temporal-ui langfuse ollama
+docker compose up -d postgres temporal temporal-ui langfuse minio
 ```
 
 Wait ~30 seconds for Temporal to finish its first-boot migrations against Postgres.
@@ -29,11 +29,11 @@ Wait ~30 seconds for Temporal to finish its first-boot migrations against Postgr
 
 ## Step 2 — Pull Ollama models
 
-Only needed once — model weights persist in a Docker volume.
+Only needed once.
 
 ```bash
-docker exec -it hargus-ai-ollama-1 ollama pull llama3.1
-docker exec -it hargus-ai-ollama-1 ollama pull nomic-embed-text
+ollama pull llama3.1
+ollama pull nomic-embed-text
 ```
 
 This may take several minutes depending on your connection.
@@ -79,14 +79,14 @@ task backend:install
 task backend:migrate
 ```
 
-This runs `alembic upgrade head`, which creates all tables (`workflow_runs`, `analysis_reports`, `document_chunks`) and enables the `pgvector` extension.
+This runs `alembic upgrade head`, which creates all application tables (`workflow_runs`, `analysis_reports`, `document_chunks`, `vacancies`, `candidates`, `candidate_files`, `messages`) and enables the `pgvector` extension.
 
 **Verify:**
 ```bash
 docker exec -it hargus-ai-postgres-1 psql -U hargus -d hargus -c "\dt"
 ```
 
-You should see the three application tables plus Alembic's `alembic_version` tracking table.
+You should see all application tables plus Alembic's `alembic_version` tracking table.
 
 > **Future schema changes:** after editing `db/models.py`, generate a new migration with:
 > ```bash
@@ -121,12 +121,12 @@ The worker must be running or submitted workflows will stay queued in Temporal i
 Use Swagger at http://localhost:8000/docs or curl:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/ai-tasks \
+curl -X POST http://localhost:8000/api/v1/ai/tasks \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "candidate_analysis",
-    "candidate_id": "candidate-001",
-    "vacancy_id": "vacancy-001"
+    "type": "candidate_summary",
+    "candidateId": "c1",
+    "vacancyId": "v1"
   }'
 ```
 

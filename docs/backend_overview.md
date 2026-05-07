@@ -52,12 +52,12 @@ When `HARGUS_TEMPORAL_ENABLED=true`, `POST /api/v1/ai/tasks` starts `CandidateAn
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | PostgreSQL connection string (`postgresql+asyncpg://...`) |
+| `HARGUS_DATABASE_URL` | PostgreSQL connection string (`postgresql+asyncpg://...`) |
 | `HARGUS_TEMPORAL_ENABLED` | Set to `true` to enable real workflow execution |
 | `HARGUS_TEMPORAL_SERVER_URL` | Temporal server address (`host:port`) |
 | `HARGUS_STORAGE_BACKEND` | `local` or `s3` |
-| `HARGUS_LLM_BASE_URL` | Ollama base URL for embeddings and agents |
-| `LANGFUSE_*` | Optional LLM observability (host, public key, secret key) |
+| `HARGUS_OLLAMA_BASE_URL` | Ollama base URL for embeddings and agents |
+| `HARGUS_LANGFUSE_*` | Optional LLM observability (host, public key, secret key) |
 
 ## Database
 

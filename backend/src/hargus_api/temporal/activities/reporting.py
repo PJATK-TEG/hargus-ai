@@ -3,17 +3,21 @@ from __future__ import annotations
 
 import json
 import logging
+import asyncio
 from datetime import datetime, timezone
 
+import psycopg
 from temporalio import activity
 
 from hargus_api.ai.agents.report_agent import run_report_agent
 from hargus_api.ai.config import get_analysis_prompt
 from hargus_api.ai.llm.factory import get_llm
+from hargus_api.config import get_settings
 from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
 from hargus_api.storage.factory import get_storage
 from hargus_api.temporal.models import (
+    MarkTaskFailedInput,
     PDFOutput,
     ReportDraft,
     ReportDraftInput,
@@ -22,6 +26,49 @@ from hargus_api.temporal.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _update_ai_task_status_sync(
+    workflow_run_id: str,
+    status: str,
+    result: dict[str, str] | None = None,
+) -> None:
+    url = get_settings().database_url.replace("+asyncpg", "").replace("+psycopg2", "")
+    with psycopg.connect(url) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE ai_tasks
+                SET status = %s, updated_at = NOW(), result = %s::jsonb
+                WHERE workflow_id = %s
+                """,
+                (
+                    status,
+                    json.dumps(result) if result is not None else None,
+                    workflow_run_id,
+                ),
+            )
+        conn.commit()
+
+
+async def _update_ai_task_status(
+    workflow_run_id: str,
+    status: str,
+    result: dict[str, str] | None = None,
+) -> None:
+    try:
+        await asyncio.to_thread(
+            _update_ai_task_status_sync,
+            workflow_run_id,
+            status,
+            result,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to update ai_tasks row for workflow=%s status=%s",
+            workflow_run_id,
+            status,
+        )
 
 
 # ── Report drafting ───────────────────────────────────────────────────────────
@@ -108,17 +155,37 @@ async def store_and_notify_activity(inp: StoreResultInput) -> None:
         run = await repo.get_by_workflow_id(inp.workflow_run_id)
         if run is None:
             logger.warning("store_and_notify: workflow run not found: %s", inp.workflow_run_id)
-            return
+        else:
+            await repo.save_report(
+                workflow_run_id=run.id,
+                candidate_id=inp.candidate_id,
+                vacancy_id=inp.vacancy_id,
+                score_data=inp.score.model_dump(),
+                report_snapshot=inp.report.model_dump(mode="json"),
+                pdf_storage_key=inp.pdf.storage_key if inp.pdf else None,
+            )
+            await repo.set_completed(run.id)
+            await session.commit()
 
-        await repo.save_report(
-            workflow_run_id=run.id,
-            candidate_id=inp.candidate_id,
-            vacancy_id=inp.vacancy_id,
-            score_data=inp.score.model_dump(),
-            report_snapshot=inp.report.model_dump(mode="json"),
-            pdf_storage_key=inp.pdf.storage_key if inp.pdf else None,
-        )
-        await repo.set_completed(run.id)
-        await session.commit()
+    await _update_ai_task_status(
+        inp.workflow_run_id,
+        "completed",
+        {"pdfStorageKey": inp.pdf.storage_key if inp.pdf else ""},
+    )
 
     logger.info("store_and_notify: completed workflow run %s", inp.workflow_run_id)
+
+
+@activity.defn
+async def mark_task_failed_activity(inp: MarkTaskFailedInput) -> None:
+    async with AsyncSessionLocal() as session:
+        repo = WorkflowRunRepository(session)
+        run = await repo.get_by_workflow_id(inp.workflow_run_id)
+        if run is not None:
+            await repo.set_failed(run.id, inp.error_message[:2000])
+            await session.commit()
+    await _update_ai_task_status(
+        inp.workflow_run_id,
+        "failed",
+        {"error": inp.error_message[:2000]},
+    )

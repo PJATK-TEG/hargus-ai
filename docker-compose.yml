@@ -51,7 +51,7 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/langfuse
+      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/hargus
       NEXTAUTH_SECRET: dev-secret-change-in-prod
       NEXTAUTH_URL: http://localhost:3001
       TELEMETRY_ENABLED: "false"

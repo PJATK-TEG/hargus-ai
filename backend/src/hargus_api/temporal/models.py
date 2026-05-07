@@ -30,6 +30,7 @@ class RawDocument(BaseModel):
     storage_key: str
     filename: str
     size_bytes: int
+    inline_text: str | None = None
 
 
 class LoadDocumentsInput(BaseModel):
@@ -222,3 +223,8 @@ class StoreResultInput(BaseModel):
     report: ReportDraft
     score: ScoringResult
     pdf: PDFOutput | None
+
+
+class MarkTaskFailedInput(BaseModel):
+    workflow_run_id: str
+    error_message: str

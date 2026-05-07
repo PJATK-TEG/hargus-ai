@@ -35,7 +35,7 @@ class S3Storage(StorageBackend):
             aws_secret_access_key=aws_secret_access_key or None,
             endpoint_url=endpoint_url or None,
         )
-        self._ensure_bucket()
+        self._bucket_ensured = False
 
     def _ensure_bucket(self) -> None:
         try:
@@ -44,6 +44,14 @@ class S3Storage(StorageBackend):
             code = e.response["Error"]["Code"]
             if code in ("404", "NoSuchBucket"):
                 self._client.create_bucket(Bucket=self._bucket)
+                return
+            raise
+
+    async def _ensure_bucket_async(self) -> None:
+        if self._bucket_ensured:
+            return
+        await asyncio.to_thread(self._ensure_bucket)
+        self._bucket_ensured = True
 
     def _full_key(self, key: str) -> str:
         return f"{self._prefix}/{key}" if self._prefix else key
@@ -51,6 +59,7 @@ class S3Storage(StorageBackend):
     async def upload(
         self, key: str, data: bytes, content_type: str = "application/octet-stream"
     ) -> str:
+        await self._ensure_bucket_async()
         fn = functools.partial(
             self._client.put_object,
             Bucket=self._bucket,
@@ -62,6 +71,7 @@ class S3Storage(StorageBackend):
         return key
 
     async def download(self, key: str) -> bytes:
+        await self._ensure_bucket_async()
         fn = functools.partial(
             self._client.get_object,
             Bucket=self._bucket,
@@ -72,6 +82,7 @@ class S3Storage(StorageBackend):
         return await asyncio.to_thread(body.read)
 
     async def exists(self, key: str) -> bool:
+        await self._ensure_bucket_async()
         fn = functools.partial(
             self._client.head_object,
             Bucket=self._bucket,
@@ -86,6 +97,7 @@ class S3Storage(StorageBackend):
             raise
 
     async def list(self, prefix: str) -> list[str]:
+        await self._ensure_bucket_async()
         full_prefix = self._full_key(prefix)
         fn = functools.partial(
             self._client.list_objects_v2,
