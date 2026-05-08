@@ -47,28 +47,6 @@ services:
     ports:
       - "8080:8080"
 
-<<<<<<< HEAD
-  langfuse:
-    image: langfuse/langfuse:2
-    depends_on:
-      - postgres
-    environment:
-      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/langfuse
-      SALT: dev-langfuse-salt-change-in-prod
-      NEXTAUTH_SECRET: dev-secret-change-in-prod
-      NEXTAUTH_URL: http://localhost:3001
-      TELEMETRY_ENABLED: "false"
-      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
-    ports:
-      - "3001:3000"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/public/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-=======
->>>>>>> 3278c22 (langfuse)
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -86,14 +64,6 @@ services:
       timeout: 5s
       retries: 5
 
-<<<<<<< HEAD
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama_data:/root/.ollama
-=======
   # Langfuse v3 (SDK v4+ requires server v3; old langfuse:2 returned 404 on ingestion).
   # Before first traces: create MinIO bucket named `langfuse` on localhost:9000 (same credentials as Hargus S3).
   langfuse-redis:
@@ -218,7 +188,6 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
->>>>>>> 3278c22 (langfuse)
 
   api:
     build:
@@ -244,23 +213,17 @@ services:
       HARGUS_AWS_SECRET_ACCESS_KEY: minioadmin
       HARGUS_AWS_REGION: us-east-1
       HARGUS_LLM_PROVIDER: ollama
-<<<<<<< HEAD
       HARGUS_LLM_MODEL: llama3.1:8b
-      HARGUS_EMBEDDING_PROVIDER: ollama
-      HARGUS_EMBEDDING_MODEL: nomic-embed-text
-      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
-      HARGUS_LANGFUSE_ENABLED: "false"
-      HARGUS_LANGFUSE_HOST: http://langfuse:3000
-=======
-      HARGUS_LLM_MODEL: llama3.2:3b
       HARGUS_EMBEDDING_PROVIDER: ollama
       HARGUS_EMBEDDING_MODEL: nomic-embed-text
       HARGUS_OLLAMA_BASE_URL: http://ollama:11434
       HARGUS_LANGFUSE_ENABLED: "true"
       HARGUS_LANGFUSE_HOST: http://langfuse-web:3000
-      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cc022b68-e0ae-4fa5-8ffb-fb06c7bb4e93}
-      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-8db281e0-f910-400d-b644-8ba1eb8faac7}
->>>>>>> 3278c22 (langfuse)
+      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
     ports:
       - "8000:8000"
 
@@ -288,23 +251,17 @@ services:
       HARGUS_AWS_SECRET_ACCESS_KEY: minioadmin
       HARGUS_AWS_REGION: us-east-1
       HARGUS_LLM_PROVIDER: ollama
-<<<<<<< HEAD
       HARGUS_LLM_MODEL: llama3.1:8b
-      HARGUS_EMBEDDING_PROVIDER: ollama
-      HARGUS_EMBEDDING_MODEL: nomic-embed-text
-      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
-      HARGUS_LANGFUSE_ENABLED: "false"
-      HARGUS_LANGFUSE_HOST: http://langfuse:3000
-=======
-      HARGUS_LLM_MODEL: llama3.2:3b
       HARGUS_EMBEDDING_PROVIDER: ollama
       HARGUS_EMBEDDING_MODEL: nomic-embed-text
       HARGUS_OLLAMA_BASE_URL: http://ollama:11434
       HARGUS_LANGFUSE_ENABLED: "true"
       HARGUS_LANGFUSE_HOST: http://langfuse-web:3000
-      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cc022b68-e0ae-4fa5-8ffb-fb06c7bb4e93}
-      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-8db281e0-f910-400d-b644-8ba1eb8faac7}
->>>>>>> 3278c22 (langfuse)
+      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
 
 volumes:
   postgres_data:
