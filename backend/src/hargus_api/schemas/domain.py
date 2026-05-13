@@ -88,6 +88,7 @@ class CandidateFile(BaseModel):
     content: str
     uploaded_at: str = Field(alias="uploadedAt")
     size: str
+    storage_key: str | None = Field(default=None, alias="storageKey")
 
 
 class Candidate(BaseModel):
@@ -113,6 +114,84 @@ class Candidate(BaseModel):
 class Message(BaseModel):
     id: str
     role: Literal["user", "assistant"]
+    content: str
+    timestamp: str
+
+
+class VacancyCreate(BaseModel):
+    model_config = {"populate_by_name": True}
+    id: str
+    title: str
+    department: str
+    location: str
+    type: VacancyType
+    status: VacancyStatus
+    description: str
+    requirements: list[str]
+    created_at: str = Field(alias="createdAt")
+    candidates_count: int = Field(default=0, alias="candidatesCount")
+    hires_target: int = Field(alias="hiresTarget")
+
+
+class VacancyUpdate(BaseModel):
+    model_config = {"populate_by_name": True}
+    title: str | None = None
+    department: str | None = None
+    location: str | None = None
+    type: VacancyType | None = None
+    status: VacancyStatus | None = None
+    description: str | None = None
+    requirements: list[str] | None = None
+    hires_target: int | None = Field(default=None, alias="hiresTarget")
+
+
+class CandidateCreate(BaseModel):
+    model_config = {"populate_by_name": True}
+    id: str
+    name: str
+    email: str
+    phone: str
+    location: str
+    avatar_initials: str = Field(alias="avatarInitials")
+    avatar_color: str = Field(alias="avatarColor")
+    vacancy_id: str = Field(alias="vacancyId")
+    score: int = 0
+    relevancy_score: int = Field(default=0, alias="relevancyScore")
+    tags: list[Tag] = Field(default_factory=list)
+    status: CandidateStatus = "new"
+    parsed_fields: ParsedFields = Field(alias="parsedFields")
+    applied_at: str = Field(alias="appliedAt")
+    linkedin_url: str | None = Field(default=None, alias="linkedinUrl")
+
+
+class CandidateUpdate(BaseModel):
+    model_config = {"populate_by_name": True}
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    location: str | None = None
+    score: int | None = None
+    relevancy_score: int | None = Field(default=None, alias="relevancyScore")
+    tags: list[Tag] | None = None
+    status: CandidateStatus | None = None
+    parsed_fields: ParsedFields | None = Field(default=None, alias="parsedFields")
+    linkedin_url: str | None = Field(default=None, alias="linkedinUrl")
+
+
+class CandidateFileCreate(BaseModel):
+    model_config = {"populate_by_name": True}
+    id: str
+    type: FileType
+    name: str
+    content: str = ""
+    uploaded_at: str = Field(alias="uploadedAt")
+    size: str
+    storage_key: str | None = Field(default=None, alias="storageKey")
+
+
+class MessageCreate(BaseModel):
+    id: str
+    role: str
     content: str
     timestamp: str
 
@@ -224,3 +303,15 @@ class MessageListResponse(BaseModel):
 
 class BackgroundSourceListResponse(BaseModel):
     items: list[BackgroundSourceInfo]
+
+
+class DocumentChunkResponse(BaseModel):
+    model_config = {"populate_by_name": True}
+    id: str
+    candidate_id: str = Field(alias="candidateId")
+    workflow_run_id: str = Field(alias="workflowRunId")
+    source_type: str = Field(alias="sourceType")
+    chunk_index: int = Field(alias="chunkIndex")
+    content: str
+    has_embedding: bool = Field(alias="hasEmbedding")
+    created_at: datetime = Field(alias="createdAt")

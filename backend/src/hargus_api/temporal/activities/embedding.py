@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from functools import lru_cache
 
 from langchain_core.documents import Document
@@ -12,6 +13,8 @@ from temporalio import activity
 
 from hargus_api.ai.llm.factory import get_embeddings
 from hargus_api.config import get_settings
+from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.db.models import DocumentChunk
 from hargus_api.temporal.models import ChunkEmbedInput, ChunkEmbedOutput
 
 logger = logging.getLogger(__name__)
@@ -73,6 +76,21 @@ async def chunk_and_embed_activity(inp: ChunkEmbedInput) -> ChunkEmbedOutput:
             collection_name,
             len(lc_docs),
         )
+
+        async with AsyncSessionLocal() as session:
+            for doc in lc_docs:
+                session.add(
+                    DocumentChunk(
+                        id=uuid.uuid4(),
+                        candidate_id=doc.metadata["candidate_id"],
+                        workflow_run_id=doc.metadata["workflow_run_id"],
+                        source_type=doc.metadata["source_type"],
+                        chunk_index=doc.metadata["chunk_index"],
+                        content=doc.page_content,
+                        chunk_metadata=doc.metadata,
+                    )
+                )
+            await session.commit()
 
     return ChunkEmbedOutput(
         collection_name=collection_name,

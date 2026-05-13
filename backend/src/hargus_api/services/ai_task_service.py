@@ -7,22 +7,14 @@ from uuid import uuid4
 from hargus_api.ai.config import get_analysis_prompt
 from hargus_api.config import Settings
 from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.db.repositories.ai_task_repo import AsyncAiTaskRepository
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
-from hargus_api.repositories.ai_task_repository import (
-    InMemoryAiTaskRepository,
-    PostgresAiTaskRepository,
-    normalize_postgres_url,
-)
 from hargus_api.schemas.domain import AiTaskRecord, AiTaskRequest
 from hargus_api.temporal.client import create_temporal_client
 from hargus_api.temporal.models import AnalysisWorkflowInput
 
 logger = logging.getLogger(__name__)
 
-_IN_MEMORY_REPOSITORY = InMemoryAiTaskRepository()
-_POSTGRES_REPOSITORIES: dict[str, PostgresAiTaskRepository] = {}
-
-# Cached Temporal client — created once per worker process.
 _temporal_client = None
 
 
@@ -36,24 +28,18 @@ async def _get_temporal_client(settings: Settings):
 class AiTaskService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        # psycopg.connect needs a plain postgresql:// URL; strip SQLAlchemy driver suffixes.
-        psycopg_url = normalize_postgres_url(settings.database_url)
-        if psycopg_url not in _POSTGRES_REPOSITORIES:
-            try:
-                _POSTGRES_REPOSITORIES[psycopg_url] = PostgresAiTaskRepository(psycopg_url)
-            except Exception:
-                logger.warning("Postgres unavailable for AiTaskRepository, using in-memory store")
-                _POSTGRES_REPOSITORIES[psycopg_url] = _IN_MEMORY_REPOSITORY  # type: ignore[assignment]
-        self.repository = _POSTGRES_REPOSITORIES[psycopg_url]
 
-    def list_tasks(self) -> list[AiTaskRecord]:
-        return self.repository.list_tasks()
+    async def list_tasks(self) -> list[AiTaskRecord]:
+        async with AsyncSessionLocal() as session:
+            repo = AsyncAiTaskRepository(session)
+            return await repo.list_tasks()
 
-    def get_task(self, task_id: str) -> AiTaskRecord | None:
-        return self.repository.get_task(task_id)
+    async def get_task(self, task_id: str) -> AiTaskRecord | None:
+        async with AsyncSessionLocal() as session:
+            repo = AsyncAiTaskRepository(session)
+            return await repo.get_task(task_id)
 
     async def submit_task(self, request: AiTaskRequest) -> AiTaskRecord:
-        # Resolve prompt: explicit request > config default
         resolved_prompt = request.prompt.strip() or get_analysis_prompt()
 
         now = datetime.now(UTC)
@@ -72,13 +58,13 @@ class AiTaskService:
             createdAt=now,
             updatedAt=now,
         )
-        self.repository.save_task(record)
+
+        async with AsyncSessionLocal() as session:
+            repo = AsyncAiTaskRepository(session)
+            await repo.save_task(record)
+            await session.commit()
 
         if self.settings.temporal_enabled:
-            # 1. Persist WorkflowRun record BEFORE starting the workflow so that
-            #    store_and_notify_activity can look it up by temporal_workflow_id.
-            #    A DB failure here is non-fatal — the analysis still runs; only
-            #    the final persist-and-notify step will fail if the row is missing.
             await _create_workflow_run_record(
                 temporal_workflow_id=workflow_id,
                 candidate_id=request.candidate_id or "",
@@ -86,7 +72,6 @@ class AiTaskService:
                 task_type=request.type,
             )
 
-            # 2. Start the Temporal workflow.
             client = await _get_temporal_client(self.settings)
             wf_input = AnalysisWorkflowInput(
                 workflow_run_id=workflow_id,
@@ -103,7 +88,10 @@ class AiTaskService:
             )
             logger.info("Started Temporal workflow %s for candidate %s", workflow_id, request.candidate_id)
             record = record.model_copy(update={"status": "running", "provider": "temporal"})
-            self.repository.save_task(record)
+            async with AsyncSessionLocal() as session:
+                repo = AsyncAiTaskRepository(session)
+                await repo.save_task(record)
+                await session.commit()
 
         return record
 
@@ -114,7 +102,6 @@ async def _create_workflow_run_record(
     vacancy_id: str,
     task_type: str,
 ) -> None:
-    """Create a WorkflowRun DB row so store_and_notify_activity can find it."""
     try:
         async with AsyncSessionLocal() as session:
             repo = WorkflowRunRepository(session)

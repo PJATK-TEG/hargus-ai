@@ -15,7 +15,7 @@ def get_ai_task_service(settings: Settings = Depends(get_settings)) -> AiTaskSer
 async def list_ai_tasks(
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
 ) -> list[AiTaskRecord]:
-    return service.list_tasks()
+    return await service.list_tasks()
 
 
 @router.post("", response_model=AiTaskRecord, status_code=202)
@@ -31,7 +31,7 @@ async def get_ai_task(
     task_id: str,
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
 ) -> AiTaskRecord:
-    task = service.get_task(task_id)
+    task = await service.get_task(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="AI task not found")
     return task

@@ -3,21 +3,25 @@ from __future__ import annotations
 
 import logging
 
+from langchain_postgres import PGVector
 from temporalio import activity
 
+from hargus_api.ai.agents.base import truncate
 from hargus_api.ai.agents.candidate_agent import run_candidate_agent
 from hargus_api.ai.agents.consistency_agent import run_consistency_agent
 from hargus_api.ai.agents.interview_agent import run_interview_agent
 from hargus_api.ai.agents.jd_agent import run_jd_agent
-from hargus_api.ai.llm.factory import get_llm
+from hargus_api.ai.config import get_rag_k
+from hargus_api.ai.llm.factory import get_embeddings, get_llm
 from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.services.candidate_service import get_vacancy
+from hargus_api.temporal.activities.embedding import _pgvector_engine
 from hargus_api.temporal.models import (
     AgentActivityInput,
     BehavioralExample,
     CandidateFacts,
-    ConsolidateInput,
     ConsolidatedFacts,
+    ConsolidateInput,
     ExperienceEntry,
     InterviewFindings,
     JobRubric,
@@ -69,6 +73,24 @@ async def _vacancy_description(inp: AgentActivityInput) -> str:
     )
 
 
+async def _rag_context(collection_name: str, query: str) -> str:
+    """Return top-k relevant chunks from pgvector as a single string."""
+    if not collection_name:
+        return ""
+    try:
+        store = PGVector(
+            embeddings=get_embeddings(),
+            collection_name=collection_name,
+            connection=_pgvector_engine(),
+            use_jsonb=True,
+        )
+        chunks = await store.asimilarity_search(query, k=get_rag_k())
+        return "\n\n---\n\n".join(c.page_content for c in chunks)
+    except Exception:
+        logger.warning("RAG retrieval failed for collection %s", collection_name)
+        return ""
+
+
 # ── JD Agent activity ─────────────────────────────────────────────────────────
 
 
@@ -93,7 +115,14 @@ async def run_jd_analysis_activity(inp: AgentActivityInput) -> JobRubric:
 @activity.defn
 async def run_candidate_extraction_activity(inp: AgentActivityInput) -> CandidateFacts:
     activity.heartbeat()
-    raw = await run_candidate_agent(get_llm(), _cv_text(inp) or _all_text(inp))
+    base = truncate(_cv_text(inp) or _all_text(inp), 6000)
+    extra = await _rag_context(
+        inp.collection_name,
+        "technical skills work experience projects achievements certifications",
+    )
+    if extra:
+        base += f"\n\n## Retrieved Context\n\n{extra}"
+    raw = await run_candidate_agent(get_llm(), base)
     entries = [
         ExperienceEntry(
             company=_get(e, "company", ""),
@@ -147,7 +176,14 @@ async def run_interview_insight_activity(inp: AgentActivityInput) -> InterviewFi
 @activity.defn
 async def run_consistency_check_activity(inp: AgentActivityInput) -> RiskFlags:
     activity.heartbeat()
-    raw = await run_consistency_agent(get_llm(), _all_text(inp))
+    base = truncate(_all_text(inp), 6000)
+    extra = await _rag_context(
+        inp.collection_name,
+        "employment gap dates inconsistency contradiction timeline discrepancy",
+    )
+    if extra:
+        base += f"\n\n## Retrieved Context\n\n{extra}"
+    raw = await run_consistency_agent(get_llm(), base)
     flags = [
         RiskFlag(
             severity=_get(f, "severity", "low"),  # type: ignore[arg-type]

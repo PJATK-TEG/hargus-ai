@@ -143,6 +143,7 @@ class CandidateFile(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     uploaded_at: Mapped[str] = mapped_column(String(64), nullable=False)
     size: Mapped[str] = mapped_column(String(32), nullable=False)
+    storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     candidate: Mapped[Candidate] = relationship("Candidate", back_populates="files")
 
@@ -157,3 +158,20 @@ class Message(Base):
     timestamp: Mapped[str] = mapped_column(String(64), nullable=False)
 
     candidate: Mapped[Candidate] = relationship("Candidate", back_populates="messages")
+
+
+class AiTask(Base):
+    __tablename__ = "ai_tasks"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    candidate_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    candidate_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    vacancy_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    provider: Mapped[str] = mapped_column(String(64), nullable=False)
+    workflow_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)

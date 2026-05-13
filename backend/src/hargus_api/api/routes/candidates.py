@@ -6,18 +6,32 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from hargus_api.db.base import get_db_session
+from hargus_api.db.repositories.document_chunk_repo import DocumentChunkRepository
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
 from hargus_api.schemas.domain import (
     AnalysisReportResponse,
     Candidate,
+    CandidateCreate,
+    CandidateFile,
+    CandidateFileCreate,
     CandidateListResponse,
+    CandidateUpdate,
+    DocumentChunkResponse,
+    Message,
+    MessageCreate,
     MessageListResponse,
     PaginationMeta,
 )
 from hargus_api.services.candidate_service import (
+    add_candidate_file,
+    add_message,
+    create_candidate,
+    delete_candidate,
+    delete_candidate_file,
     get_candidate,
     get_candidate_messages,
     list_candidates_paginated,
+    update_candidate,
 )
 from hargus_api.storage.factory import get_storage
 
@@ -98,6 +112,41 @@ async def get_report_pdf(
     )
 
 
+@router.post("", response_model=Candidate, status_code=201)
+async def create_candidate_endpoint(
+    body: CandidateCreate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> Candidate:
+    candidate = await create_candidate(session, body)
+    await session.commit()
+    return candidate
+
+
+@router.patch("/{candidate_id}", response_model=Candidate)
+async def update_candidate_endpoint(
+    candidate_id: str,
+    body: CandidateUpdate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> Candidate:
+    candidate = await update_candidate(session, candidate_id, body)
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    await session.commit()
+    return candidate
+
+
+@router.delete("/{candidate_id}", status_code=204)
+async def delete_candidate_endpoint(
+    candidate_id: str,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> Response:
+    deleted = await delete_candidate(session, candidate_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    await session.commit()
+    return Response(status_code=204)
+
+
 @router.get("/{candidate_id}/messages", response_model=MessageListResponse)
 async def get_messages(
     candidate_id: str, session: Annotated[AsyncSession, Depends(get_db_session)]
@@ -111,3 +160,70 @@ async def get_messages(
         items=items,
         meta=PaginationMeta(total=len(items), limit=len(items), offset=0, returned=len(items)),
     )
+
+
+@router.post("/{candidate_id}/messages", response_model=Message, status_code=201)
+async def create_message(
+    candidate_id: str,
+    body: MessageCreate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> Message:
+    candidate = await get_candidate(session, candidate_id)
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    message = await add_message(session, candidate_id, body)
+    await session.commit()
+    return message
+
+
+@router.post("/{candidate_id}/files", response_model=CandidateFile, status_code=201)
+async def add_file(
+    candidate_id: str,
+    body: CandidateFileCreate,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> CandidateFile:
+    candidate = await get_candidate(session, candidate_id)
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    file = await add_candidate_file(session, candidate_id, body)
+    await session.commit()
+    return file
+
+
+@router.delete("/{candidate_id}/files/{file_id}", status_code=204)
+async def remove_file(
+    candidate_id: str,
+    file_id: str,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> Response:
+    deleted = await delete_candidate_file(session, file_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="File not found")
+    await session.commit()
+    return Response(status_code=204)
+
+
+@router.get("/{candidate_id}/chunks", response_model=list[DocumentChunkResponse])
+async def get_candidate_chunks(
+    candidate_id: str,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[DocumentChunkResponse]:
+    candidate = await get_candidate(session, candidate_id)
+    if candidate is None:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    repo = DocumentChunkRepository(session)
+    chunks = await repo.get_chunks_by_candidate(candidate_id, limit=limit)
+    return [
+        DocumentChunkResponse(
+            id=str(c.id),
+            candidateId=c.candidate_id,
+            workflowRunId=c.workflow_run_id,
+            sourceType=c.source_type,
+            chunkIndex=c.chunk_index,
+            content=c.content,
+            hasEmbedding=c.embedding is not None,
+            createdAt=c.created_at,
+        )
+        for c in chunks
+    ]

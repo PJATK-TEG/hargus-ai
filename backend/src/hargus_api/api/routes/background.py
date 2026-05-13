@@ -74,7 +74,7 @@ async def list_background_checks(
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
 ) -> list[AiTaskRecord]:
     return [
-        task for task in service.list_tasks() if task.type == "candidate_background_check"
+        task for task in await service.list_tasks() if task.type == "candidate_background_check"
     ]
 
 
@@ -100,7 +100,7 @@ async def get_background_check(
     task_id: str,
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
 ) -> AiTaskRecord:
-    task = service.get_task(task_id)
+    task = await service.get_task(task_id)
     if task is None or task.type != "candidate_background_check":
         raise HTTPException(status_code=404, detail="Background check task not found")
     return task

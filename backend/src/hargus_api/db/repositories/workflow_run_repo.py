@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from hargus_api.db.models import AnalysisReport, WorkflowRun
 
 
-
 class WorkflowRunRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session

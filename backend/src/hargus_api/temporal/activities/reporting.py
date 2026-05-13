@@ -3,19 +3,17 @@ from __future__ import annotations
 
 import json
 import logging
-import asyncio
 from datetime import datetime, timezone
 
-import psycopg
+from sqlalchemy import update
 from temporalio import activity
 
 from hargus_api.ai.agents.report_agent import run_report_agent
 from hargus_api.ai.config import get_analysis_prompt
 from hargus_api.ai.llm.factory import get_llm
-from hargus_api.config import get_settings
 from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.db.models import AiTask
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
-from hargus_api.repositories.ai_task_repository import normalize_postgres_url
 from hargus_api.storage.factory import get_storage
 from hargus_api.temporal.models import (
     MarkTaskFailedInput,
@@ -30,41 +28,19 @@ logger = logging.getLogger(__name__)
 MAX_ERROR_MESSAGE_LENGTH = 2000
 
 
-def _update_ai_task_status_blocking(
-    workflow_run_id: str,
-    status: str,
-    result: dict[str, str] | None = None,
-) -> None:
-    url = normalize_postgres_url(get_settings().database_url)
-    with psycopg.connect(url) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                UPDATE ai_tasks
-                SET status = %s, updated_at = NOW(), result = %s::jsonb
-                WHERE workflow_id = %s
-                """,
-                (
-                    status,
-                    json.dumps(result) if result is not None else None,
-                    workflow_run_id,
-                ),
-            )
-        conn.commit()
-
-
 async def _update_ai_task_status(
     workflow_run_id: str,
     status: str,
     result: dict[str, str] | None = None,
 ) -> None:
     try:
-        await asyncio.to_thread(
-            _update_ai_task_status_blocking,
-            workflow_run_id,
-            status,
-            result,
-        )
+        async with AsyncSessionLocal() as session:
+            await session.execute(
+                update(AiTask)
+                .where(AiTask.workflow_id == workflow_run_id)
+                .values(status=status, updated_at=datetime.now(timezone.utc), result=result)
+            )
+            await session.commit()
     except Exception:
         logger.exception(
             "Failed to update ai_tasks row for workflow=%s status=%s",
