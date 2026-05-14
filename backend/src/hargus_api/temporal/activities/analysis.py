@@ -17,6 +17,8 @@ from hargus_api.ai.llm.factory import get_embeddings, get_llm
 from hargus_api.ai.tracing import record_score
 from hargus_api.config import get_settings
 from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.ai.tracing import record_score
+from hargus_api.config import get_settings
 from hargus_api.services.candidate_service import get_vacancy
 from hargus_api.temporal.activities.embedding import _pgvector_engine
 from hargus_api.temporal.activity_utils import heartbeat_while
