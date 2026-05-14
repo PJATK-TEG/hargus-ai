@@ -63,18 +63,37 @@ class _State(TypedDict):
     error: str | None
 
 
-def build_report_agent(llm: BaseChatModel):
+def _format_report_system(coordinator_prompt: str) -> str:
+    """Apply coordinator text without treating its `{`/`}` as str.format placeholders."""
+    escaped = coordinator_prompt.replace("{", "{{").replace("}", "}}")
+    return _SYSTEM.format(coordinator_prompt=escaped)
+
+
+def build_report_agent(
+    llm: BaseChatModel,
+    trace_metadata: dict[str, Any] | None = None,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
+):
+    invoke_cfg = traced_config(
+        "report_drafting",
+        trace_metadata,
+        session_id=session_id,
+        user_id=user_id,
+    )
+
     async def draft(state: _State) -> _State:
         try:
             data = state["input_data"]
             coordinator_prompt = data.get("coordinator_prompt", "")
-            system = _SYSTEM.format(coordinator_prompt=coordinator_prompt)
+            system = _format_report_system(coordinator_prompt)
             chain = build_json_chain(llm, system, _HUMAN)
             # Pass all fields except coordinator_prompt to the human template
             human_data = {k: v for k, v in data.items() if k != "coordinator_prompt"}
             result = await chain.ainvoke(
                 human_data,
-                config=traced_config("report_drafting"),
+                config=invoke_cfg,
             )
             return {"parsed_result": result, "error": None}
         except Exception:
@@ -89,9 +108,16 @@ def build_report_agent(llm: BaseChatModel):
 
 
 async def run_report_agent(
-    llm: BaseChatModel, input_data: dict[str, Any]
+    llm: BaseChatModel,
+    input_data: dict[str, Any],
+    *,
+    trace_metadata: dict[str, Any] | None = None,
+    session_id: str | None = None,
+    user_id: str | None = None,
 ) -> dict[str, Any]:
-    graph = build_report_agent(llm)
+    graph = build_report_agent(
+        llm, trace_metadata, session_id=session_id, user_id=user_id
+    )
     result = await graph.ainvoke(
         {"input_data": input_data, "parsed_result": {}, "error": None}
     )

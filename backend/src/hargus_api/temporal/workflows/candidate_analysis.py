@@ -1,4 +1,4 @@
-"""CandidateAnalysisWorkflow — main Temporal workflow for candidate analysis."""
+﻿"""CandidateAnalysisWorkflow — main Temporal workflow for candidate analysis."""
 from __future__ import annotations
 
 import asyncio
@@ -8,6 +8,25 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    from hargus_api.temporal.activities.analysis import (
+        consolidate_facts_activity,
+        run_candidate_extraction_activity,
+        run_consistency_check_activity,
+        run_interview_insight_activity,
+        run_jd_analysis_activity,
+    )
+    from hargus_api.temporal.activities.embedding import chunk_and_embed_activity
+    from hargus_api.temporal.activities.ingestion import (
+        load_documents_activity,
+        parse_documents_activity,
+    )
+    from hargus_api.temporal.activities.reporting import (
+        draft_report_activity,
+        mark_task_failed_activity,
+        render_pdf_activity,
+        store_and_notify_activity,
+    )
+    from hargus_api.temporal.activities.scoring import score_candidate_activity
     from hargus_api.temporal.models import (
         AgentActivityInput,
         AnalysisWorkflowInput,
@@ -18,25 +37,6 @@ with workflow.unsafe.imports_passed_through():
         ReportDraftInput,
         StoreResultInput,
         MarkTaskFailedInput,
-    )
-    from hargus_api.temporal.activities.ingestion import (
-        load_documents_activity,
-        parse_documents_activity,
-    )
-    from hargus_api.temporal.activities.embedding import chunk_and_embed_activity
-    from hargus_api.temporal.activities.analysis import (
-        consolidate_facts_activity,
-        run_candidate_extraction_activity,
-        run_consistency_check_activity,
-        run_interview_insight_activity,
-        run_jd_analysis_activity,
-    )
-    from hargus_api.temporal.activities.scoring import score_candidate_activity
-    from hargus_api.temporal.activities.reporting import (
-        draft_report_activity,
-        mark_task_failed_activity,
-        render_pdf_activity,
-        store_and_notify_activity,
     )
 
 # Retry policies
@@ -55,7 +55,8 @@ _OPTS_IO = {
 }
 _OPTS_LLM = {
     "start_to_close_timeout": timedelta(minutes=20),
-    "heartbeat_timeout": timedelta(minutes=4),
+    # LLM calls can run many minutes; activities heartbeat periodically while awaiting.
+    "heartbeat_timeout": timedelta(minutes=10),
     "retry_policy": _RETRY_LLM,
 }
 
@@ -156,6 +157,11 @@ class CandidateAnalysisWorkflow:
             )
 
             # ── Phase 8: Persist & notify ─────────────────────────────────────
+            rf = consolidated.risk_flags.flags
+            n_high = sum(1 for f in rf if f.severity == "high")
+            n_med = sum(1 for f in rf if f.severity == "medium")
+            n_low = sum(1 for f in rf if f.severity == "low")
+
             await workflow.execute_activity(
                 store_and_notify_activity,
                 StoreResultInput(
@@ -165,6 +171,11 @@ class CandidateAnalysisWorkflow:
                     report=report,
                     score=score,
                     pdf=pdf,
+                    skill_coverage=consolidated.skill_coverage,
+                    risk_flag_count=len(rf),
+                    risk_flags_high=n_high,
+                    risk_flags_medium=n_med,
+                    risk_flags_low=n_low,
                 ),
                 **_OPTS_FAST,
             )
