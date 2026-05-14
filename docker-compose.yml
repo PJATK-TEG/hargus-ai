@@ -9,6 +9,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init-langfuse.sql:/docker-entrypoint-initdb.d/02-langfuse.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hargus -d hargus"]
       interval: 5s
@@ -46,25 +47,6 @@ services:
     ports:
       - "8080:8080"
 
-  langfuse:
-    image: langfuse/langfuse:2
-    depends_on:
-      - postgres
-    environment:
-      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/hargus
-      NEXTAUTH_SECRET: dev-secret-change-in-prod
-      NEXTAUTH_URL: http://localhost:3001
-      TELEMETRY_ENABLED: "false"
-      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
-      SALT: changeme
-    ports:
-      - "3001:3000"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/public/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -82,12 +64,130 @@ services:
       timeout: 5s
       retries: 5
 
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama_data:/root/.ollama
+  # Langfuse v3 (SDK v4+ requires server v3; old langfuse:2 returned 404 on ingestion).
+  # Before first traces: create MinIO bucket named `langfuse` on localhost:9000 (same credentials as Hargus S3).
+  langfuse-redis:
+    image: redis:7
+    restart: unless-stopped
+    command: >
+      redis-server --requirepass langfuse-redis-dev --maxmemory-policy noeviction
+    ports:
+      - "6380:6379"
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "langfuse-redis-dev", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse-dev-password
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    ports:
+      - "8124:8123"
+      - "9010:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3030:3030"
+    environment: &langfuse-env
+      NEXTAUTH_URL: http://localhost:3001
+      DATABASE_URL: postgresql://hargus:hargus@postgres:5432/langfuse
+      SALT: dev-langfuse-salt-change-in-prod
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse-dev-password
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: langfuse-redis-dev
+      REDIS_TLS_ENABLED: "false"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minioadmin
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: minioadmin
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minioadmin
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: minioadmin
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: "false"
+      LANGFUSE_S3_BATCH_EXPORT_BUCKET: langfuse
+      LANGFUSE_S3_BATCH_EXPORT_PREFIX: exports/
+      LANGFUSE_S3_BATCH_EXPORT_REGION: auto
+      LANGFUSE_S3_BATCH_EXPORT_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_BATCH_EXPORT_EXTERNAL_ENDPOINT: http://localhost:9000
+      LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID: minioadmin
+      LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY: minioadmin
+      LANGFUSE_S3_BATCH_EXPORT_FORCE_PATH_STYLE: "true"
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-worker:
+        condition: service_started
+    ports:
+      - "3001:3000"
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: dev-secret-change-in-prod
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/public/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
 
   api:
     build:
@@ -116,9 +216,14 @@ services:
       HARGUS_LLM_MODEL: llama3.1:8b
       HARGUS_EMBEDDING_PROVIDER: ollama
       HARGUS_EMBEDDING_MODEL: nomic-embed-text
-      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
-      HARGUS_LANGFUSE_ENABLED: "false"
-      HARGUS_LANGFUSE_HOST: http://langfuse:3000
+      HARGUS_OLLAMA_BASE_URL: http://ollama:11434
+      HARGUS_LANGFUSE_ENABLED: "true"
+      HARGUS_LANGFUSE_HOST: http://langfuse-web:3000
+      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
     ports:
       - "8000:8000"
 
@@ -149,11 +254,19 @@ services:
       HARGUS_LLM_MODEL: llama3.1:8b
       HARGUS_EMBEDDING_PROVIDER: ollama
       HARGUS_EMBEDDING_MODEL: nomic-embed-text
-      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
-      HARGUS_LANGFUSE_ENABLED: "false"
-      HARGUS_LANGFUSE_HOST: http://langfuse:3000
+      HARGUS_OLLAMA_BASE_URL: http://ollama:11434
+      HARGUS_LANGFUSE_ENABLED: "true"
+      HARGUS_LANGFUSE_HOST: http://langfuse-web:3000
+      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cfea1f52-bfb3-4e91-9e63-3ab964bd77b2}
+      LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-39d84094-5cfd-4260-a0fc-1255435d09b5}
 
 volumes:
   postgres_data:
   minio_data:
   ollama_data:
+  langfuse_redis_data:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:

@@ -44,14 +44,23 @@ class _State(TypedDict):
     error: str | None
 
 
-def build_jd_agent(llm: BaseChatModel):
+def build_jd_agent(
+    llm: BaseChatModel,
+    trace_metadata: dict[str, Any] | None = None,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
+):
     chain = build_json_chain(llm, _SYSTEM, _HUMAN)
+    invoke_cfg = traced_config(
+        "jd_extraction", trace_metadata, session_id=session_id, user_id=user_id
+    )
 
     async def extract(state: _State) -> _State:
         try:
             result = await chain.ainvoke(
                 {"job_description": truncate(state["job_description"], 6000)},
-                config=traced_config("jd_extraction"),
+                config=invoke_cfg,
             )
             return {"parsed_result": result, "error": None}
         except Exception:
@@ -65,8 +74,15 @@ def build_jd_agent(llm: BaseChatModel):
     return g.compile()
 
 
-async def run_jd_agent(llm: BaseChatModel, job_description: str) -> dict[str, Any]:
-    graph = build_jd_agent(llm)
+async def run_jd_agent(
+    llm: BaseChatModel,
+    job_description: str,
+    *,
+    trace_metadata: dict[str, Any] | None = None,
+    session_id: str | None = None,
+    user_id: str | None = None,
+) -> dict[str, Any]:
+    graph = build_jd_agent(llm, trace_metadata, session_id=session_id, user_id=user_id)
     result = await graph.ainvoke(
         {"job_description": job_description, "parsed_result": {}, "error": None}
     )

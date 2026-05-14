@@ -11,8 +11,10 @@
 ## Step 1 — Start infrastructure
 
 ```bash
-docker compose up -d postgres temporal temporal-ui langfuse minio
+docker compose up -d postgres temporal temporal-ui langfuse ollama minio
 ```
+
+MinIO serves the S3 API at **http://localhost:9000** (bucket `hargus`). The default [`backend/.env.example`](../backend/.env.example) uses `HARGUS_STORAGE_BACKEND=s3` against this endpoint, so the worker needs MinIO running or you must switch to `local` storage.
 
 Wait ~30 seconds for Temporal to finish its first-boot migrations against Postgres.
 

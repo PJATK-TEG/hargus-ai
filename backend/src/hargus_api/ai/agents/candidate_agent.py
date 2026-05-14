@@ -50,14 +50,26 @@ class _State(TypedDict):
     error: str | None
 
 
-def build_candidate_agent(llm: BaseChatModel):
+def build_candidate_agent(
+    llm: BaseChatModel,
+    trace_metadata: dict[str, Any] | None = None,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
+):
     chain = build_json_chain(llm, _SYSTEM, _HUMAN)
+    invoke_cfg = traced_config(
+        "candidate_extraction",
+        trace_metadata,
+        session_id=session_id,
+        user_id=user_id,
+    )
 
     async def extract(state: _State) -> _State:
         try:
             result = await chain.ainvoke(
                 {"documents": truncate(state["documents"], 8000)},
-                config=traced_config("candidate_extraction"),
+                config=invoke_cfg,
             )
             return {"parsed_result": result, "error": None}
         except Exception:
@@ -71,8 +83,17 @@ def build_candidate_agent(llm: BaseChatModel):
     return g.compile()
 
 
-async def run_candidate_agent(llm: BaseChatModel, documents_text: str) -> dict[str, Any]:
-    graph = build_candidate_agent(llm)
+async def run_candidate_agent(
+    llm: BaseChatModel,
+    documents_text: str,
+    *,
+    trace_metadata: dict[str, Any] | None = None,
+    session_id: str | None = None,
+    user_id: str | None = None,
+) -> dict[str, Any]:
+    graph = build_candidate_agent(
+        llm, trace_metadata, session_id=session_id, user_id=user_id
+    )
     result = await graph.ainvoke(
         {"documents": documents_text, "parsed_result": {}, "error": None}
     )

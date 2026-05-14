@@ -223,6 +223,12 @@ class StoreResultInput(BaseModel):
     report: ReportDraft
     score: ScoringResult
     pdf: PDFOutput | None
+    # Langfuse / dashboards — from consolidation (not persisted separately)
+    skill_coverage: float = 0.0
+    risk_flag_count: int = 0
+    risk_flags_high: int = 0
+    risk_flags_medium: int = 0
+    risk_flags_low: int = 0
 
 
 class MarkTaskFailedInput(BaseModel):

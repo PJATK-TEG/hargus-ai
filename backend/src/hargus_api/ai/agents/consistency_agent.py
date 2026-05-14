@@ -54,14 +54,26 @@ class _State(TypedDict):
     error: str | None
 
 
-def build_consistency_agent(llm: BaseChatModel):
+def build_consistency_agent(
+    llm: BaseChatModel,
+    trace_metadata: dict[str, Any] | None = None,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
+):
     chain = build_json_chain(llm, _SYSTEM, _HUMAN)
+    invoke_cfg = traced_config(
+        "consistency_check",
+        trace_metadata,
+        session_id=session_id,
+        user_id=user_id,
+    )
 
     async def detect(state: _State) -> _State:
         try:
             result = await chain.ainvoke(
                 {"all_documents": truncate(state["all_documents"], 10000)},
-                config=traced_config("consistency_check"),
+                config=invoke_cfg,
             )
             return {"parsed_result": result, "error": None}
         except Exception:
@@ -76,9 +88,16 @@ def build_consistency_agent(llm: BaseChatModel):
 
 
 async def run_consistency_agent(
-    llm: BaseChatModel, all_documents_text: str
+    llm: BaseChatModel,
+    all_documents_text: str,
+    *,
+    trace_metadata: dict[str, Any] | None = None,
+    session_id: str | None = None,
+    user_id: str | None = None,
 ) -> dict[str, Any]:
-    graph = build_consistency_agent(llm)
+    graph = build_consistency_agent(
+        llm, trace_metadata, session_id=session_id, user_id=user_id
+    )
     result = await graph.ainvoke(
         {"all_documents": all_documents_text, "parsed_result": {}, "error": None}
     )

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 
 from temporalio.worker import Worker
 
@@ -109,4 +110,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    # Psycopg async requires SelectorEventLoop; Windows defaults to ProactorEventLoop.
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())
