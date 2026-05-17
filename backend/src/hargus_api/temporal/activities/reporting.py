@@ -1,9 +1,9 @@
 """Reporting activities: draft report, render PDF, store results."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
@@ -16,6 +16,7 @@ from hargus_api.ai.llm.factory import get_llm
 from hargus_api.ai.tracing import flush_langfuse, record_score
 from hargus_api.config import get_settings
 from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.db.repositories.candidate_repo import CandidateRepository
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
 from hargus_api.repositories.ai_task_repository import normalize_postgres_url
 from hargus_api.storage.factory import get_storage
@@ -27,6 +28,8 @@ from hargus_api.temporal.models import (
     ReportDraftInput,
     ReportSection,
     StoreResultInput,
+    UpdateCandidateInput,
+    UpdateCandidateProfileInput,
 )
 
 logger = logging.getLogger(__name__)
@@ -193,6 +196,64 @@ async def render_pdf_activity(report: ReportDraft) -> PDFOutput:
 
 
 _FALLBACK_SUMMARY = "Report generation failed. Manual review required."
+
+
+# ── Candidate update ──────────────────────────────────────────────────────────
+
+
+@activity.defn
+async def update_candidate_activity(inp: UpdateCandidateInput) -> None:
+    """Persist extracted candidate facts and score to the candidates table."""
+    facts = inp.consolidated.candidate_facts
+    parsed_fields = {
+        "summary": "",
+        "skills": facts.skills,
+        "skillScores": [{"skill": s, "score": 0} for s in facts.skills],
+        "experience": [
+            {
+                "company": e.company,
+                "role": e.role,
+                "from": "N/A",
+                "to": "N/A",
+                "description": e.description,
+            }
+            for e in facts.experience_entries
+        ],
+        "education": [
+            {
+                "institution": e.get("institution", ""),
+                "degree": e.get("degree", ""),
+                "field": e.get("field", ""),
+                "year": e.get("year", ""),
+            }
+            for e in facts.education
+        ],
+        "languages": [],
+        "certifications": facts.certifications,
+        "totalYearsExp": int(facts.total_years_experience),
+    }
+    async with AsyncSessionLocal() as session:
+        await CandidateRepository(session).update_from_analysis(
+            inp.candidate_id, parsed_fields, round(inp.score.overall_score)
+        )
+        await session.commit()
+    logger.info("update_candidate: saved facts for candidate %s", inp.candidate_id)
+
+
+@activity.defn
+async def update_candidate_profile_activity(inp: UpdateCandidateProfileInput) -> None:
+    p = inp.profile
+    async with AsyncSessionLocal() as session:
+        await CandidateRepository(session).update_profile(
+            inp.candidate_id,
+            name=p.name,
+            email=p.email,
+            phone=p.phone,
+            location=p.location,
+            linkedin_url=p.linkedin_url,
+        )
+        await session.commit()
+    logger.info("update_candidate_profile: wrote profile for candidate %s", inp.candidate_id)
 
 
 def _terminal_coercion_count(inp: StoreResultInput) -> int:

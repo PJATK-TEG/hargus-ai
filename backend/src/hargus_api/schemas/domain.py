@@ -15,6 +15,7 @@ AiTaskType = Literal[
     "candidate_comparison",
     "candidate_red_flags",
     "candidate_background_check",
+    "candidate_query",
 ]
 AiTaskStatus = Literal["queued", "running", "completed", "failed"]
 BackgroundSource = Literal[
@@ -41,6 +42,29 @@ class Vacancy(BaseModel):
     created_at: str = Field(alias="createdAt")
     candidates_count: int = Field(alias="candidatesCount")
     hires_target: int = Field(alias="hiresTarget")
+
+
+class VacancyCreate(BaseModel):
+    model_config = {"populate_by_name": True}
+    title: str
+    department: str
+    location: str
+    type: VacancyType
+    description: str
+    requirements: list[str]
+    hires_target: int = Field(1, alias="hiresTarget")
+
+
+class VacancyUpdate(BaseModel):
+    model_config = {"populate_by_name": True}
+    title: str | None = None
+    department: str | None = None
+    location: str | None = None
+    type: VacancyType | None = None
+    status: VacancyStatus | None = None
+    description: str | None = None
+    requirements: list[str] | None = None
+    hires_target: int | None = Field(default=None, alias="hiresTarget")
 
 
 class Tag(BaseModel):
@@ -224,3 +248,10 @@ class MessageListResponse(BaseModel):
 
 class BackgroundSourceListResponse(BaseModel):
     items: list[BackgroundSourceInfo]
+
+
+
+class CandidateQueryRequest(BaseModel):
+    model_config = {"populate_by_name": True}
+    query: str
+    vacancy_id: str = Field("", alias="vacancyId")

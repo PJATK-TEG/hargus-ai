@@ -4,22 +4,28 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from langchain_postgres import PGVector
 from temporalio import activity
 
 from hargus_api.ai.agents.candidate_agent import run_candidate_agent
 from hargus_api.ai.agents.consistency_agent import run_consistency_agent
 from hargus_api.ai.agents.interview_agent import run_interview_agent
 from hargus_api.ai.agents.jd_agent import run_jd_agent
-from hargus_api.ai.llm.factory import get_llm
-from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.ai.agents.profile_agent import run_profile_agent
+from hargus_api.ai.config import get_rag_k
+from hargus_api.ai.llm.factory import get_embeddings, get_llm
 from hargus_api.ai.tracing import record_score
 from hargus_api.config import get_settings
-from hargus_api.services.candidate_service import get_vacancy
+from hargus_api.db.base import AsyncSessionLocal
+from hargus_api.db.repositories.candidate_repo import CandidateRepository
+from hargus_api.services.vacancy_service import get_vacancy
+from hargus_api.temporal.activities.embedding import pgvector_engine
 from hargus_api.temporal.activity_utils import heartbeat_while
 from hargus_api.temporal.models import (
     AgentActivityInput,
     BehavioralExample,
     CandidateFacts,
+    CandidateProfile,
     ConsolidatedFacts,
     ConsolidateInput,
     ExperienceEntry,
@@ -30,6 +36,8 @@ from hargus_api.temporal.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+_NAME_SENTINEL = "[run Analyze] New Candidate"
 
 
 def _analysis_trace_metadata(inp: AgentActivityInput) -> dict[str, Any]:
@@ -127,6 +135,30 @@ def _all_text(inp: AgentActivityInput) -> str:
     return "\n\n---\n\n".join(d.raw_text for d in inp.documents)
 
 
+async def _retrieve_chunks(collection_name: str, query: str) -> str:
+    """Return top-k relevant chunks from pgvector as a formatted string.
+
+    Returns empty string when the collection is empty or retrieval fails.
+    """
+    if not collection_name:
+        return ""
+    try:
+        store = PGVector(
+            embeddings=get_embeddings(),
+            collection_name=collection_name,
+            connection=pgvector_engine(),
+            use_jsonb=True,
+        )
+        docs = await store.asimilarity_search(query, k=get_rag_k())
+        if not docs:
+            return ""
+        chunks = "\n---\n".join(d.page_content for d in docs)
+        return f"[Relevant excerpts from candidate documents]\n{chunks}"
+    except Exception:
+        logger.debug("RAG retrieval failed for collection %s", collection_name)
+        return ""
+
+
 async def _vacancy_description(inp: AgentActivityInput) -> str:
     """Fetch vacancy description from the service layer."""
     if not inp.vacancy_id:
@@ -186,10 +218,16 @@ async def run_jd_analysis_activity(inp: AgentActivityInput) -> JobRubric:
 @activity.defn
 async def run_candidate_extraction_activity(inp: AgentActivityInput) -> CandidateFacts:
     activity.heartbeat()
+    rag = await _retrieve_chunks(
+        inp.collection_name,
+        "skills experience education certifications work history",
+    )
+    base_text = _cv_text(inp) or _all_text(inp)
+    text = f"{rag}\n\n{base_text}".strip() if rag else base_text
     raw = await heartbeat_while(
         run_candidate_agent(
             get_llm(),
-            _cv_text(inp) or _all_text(inp),
+            text,
             trace_metadata=_analysis_trace_metadata(inp),
             session_id=inp.workflow_run_id,
             user_id=inp.candidate_id,
@@ -229,10 +267,16 @@ async def run_candidate_extraction_activity(inp: AgentActivityInput) -> Candidat
 @activity.defn
 async def run_interview_insight_activity(inp: AgentActivityInput) -> InterviewFindings:
     activity.heartbeat()
+    rag = await _retrieve_chunks(
+        inp.collection_name,
+        "communication behavior competencies strengths weaknesses examples",
+    )
+    base_text = _transcript_text(inp)
+    text = f"{rag}\n\n{base_text}".strip() if rag else base_text
     raw = await heartbeat_while(
         run_interview_agent(
             get_llm(),
-            _transcript_text(inp),
+            text,
             trace_metadata=_analysis_trace_metadata(inp),
             session_id=inp.workflow_run_id,
             user_id=inp.candidate_id,
@@ -273,10 +317,16 @@ async def run_interview_insight_activity(inp: AgentActivityInput) -> InterviewFi
 @activity.defn
 async def run_consistency_check_activity(inp: AgentActivityInput) -> RiskFlags:
     activity.heartbeat()
+    rag = await _retrieve_chunks(
+        inp.collection_name,
+        "employment gaps inconsistencies contradictions dates timeline claims",
+    )
+    base_text = _all_text(inp)
+    text = f"{rag}\n\n{base_text}".strip() if rag else base_text
     raw = await heartbeat_while(
         run_consistency_agent(
             get_llm(),
-            _all_text(inp),
+            text,
             trace_metadata=_analysis_trace_metadata(inp),
             session_id=inp.workflow_run_id,
             user_id=inp.candidate_id,
@@ -353,4 +403,35 @@ async def consolidate_facts_activity(inp: ConsolidateInput) -> ConsolidatedFacts
         matched_skills=matched,
         missing_skills=missing,
         skill_coverage=round(coverage, 3),
+    )
+
+
+# ── Profile Extraction activity ───────────────────────────────────────────────
+
+
+@activity.defn
+async def run_profile_extraction_activity(inp: AgentActivityInput) -> CandidateProfile:
+    activity.heartbeat()
+    async with AsyncSessionLocal() as session:
+        candidate = await CandidateRepository(session).get_by_id(inp.candidate_id)
+    if candidate and candidate.name != _NAME_SENTINEL:
+        return CandidateProfile()
+
+    cv_text = _cv_text(inp) or _all_text(inp)
+    raw = await heartbeat_while(
+        run_profile_agent(
+            get_llm(),
+            cv_text,
+            trace_metadata=_analysis_trace_metadata(inp),
+            session_id=inp.workflow_run_id,
+            user_id=inp.candidate_id,
+        )
+    )
+    c = _CoercionCounter()
+    return CandidateProfile(
+        name=str(c.get(raw, "name", "") or "").strip(),
+        email=str(c.get(raw, "email", "") or "").strip(),
+        phone=str(c.get(raw, "phone", "") or "").strip(),
+        location=str(c.get(raw, "location", "") or "").strip(),
+        linkedin_url=str(c.get(raw, "linkedin_url", "") or "").strip(),
     )

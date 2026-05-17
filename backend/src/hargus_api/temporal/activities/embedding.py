@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
-def _pgvector_engine() -> AsyncEngine:
+def pgvector_engine() -> AsyncEngine:
     """Return a psycopg3 async engine for PGVector.
 
     langchain_postgres sends multi-statement SQL (advisory lock + CREATE EXTENSION)
@@ -63,7 +63,7 @@ async def chunk_and_embed_activity(inp: ChunkEmbedInput) -> ChunkEmbedOutput:
         store = PGVector(
             embeddings=get_embeddings(),
             collection_name=collection_name,
-            connection=_pgvector_engine(),
+            connection=pgvector_engine(),
             use_jsonb=True,
         )
         await store.aadd_documents(lc_docs)

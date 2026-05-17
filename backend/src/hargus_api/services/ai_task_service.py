@@ -9,7 +9,6 @@ from hargus_api.config import Settings
 from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
 from hargus_api.repositories.ai_task_repository import (
-    InMemoryAiTaskRepository,
     PostgresAiTaskRepository,
     normalize_postgres_url,
 )
@@ -19,7 +18,6 @@ from hargus_api.temporal.models import AnalysisWorkflowInput
 
 logger = logging.getLogger(__name__)
 
-_IN_MEMORY_REPOSITORY = InMemoryAiTaskRepository()
 _POSTGRES_REPOSITORIES: dict[str, PostgresAiTaskRepository] = {}
 
 # Cached Temporal client — created once per worker process.
@@ -39,11 +37,7 @@ class AiTaskService:
         # psycopg.connect needs a plain postgresql:// URL; strip SQLAlchemy driver suffixes.
         psycopg_url = normalize_postgres_url(settings.database_url)
         if psycopg_url not in _POSTGRES_REPOSITORIES:
-            try:
-                _POSTGRES_REPOSITORIES[psycopg_url] = PostgresAiTaskRepository(psycopg_url)
-            except Exception:
-                logger.warning("Postgres unavailable for AiTaskRepository, using in-memory store")
-                _POSTGRES_REPOSITORIES[psycopg_url] = _IN_MEMORY_REPOSITORY  # type: ignore[assignment]
+            _POSTGRES_REPOSITORIES[psycopg_url] = PostgresAiTaskRepository(psycopg_url)
         self.repository = _POSTGRES_REPOSITORIES[psycopg_url]
 
     def list_tasks(self) -> list[AiTaskRecord]:

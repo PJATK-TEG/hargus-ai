@@ -1,24 +1,39 @@
-import { useState } from 'react'
-import { X, Plus, Trash2, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Plus, Trash2, Loader2, Save } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../lib/api'
 import type { Vacancy } from '../types'
 
-interface CreateVacancyModalProps {
+interface EditVacancyModalProps {
   open: boolean
+  vacancy: Vacancy
   onClose: () => void
-  onCreate: (vacancy: Vacancy) => void
+  onUpdate: (updated: Vacancy) => void
 }
 
-export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVacancyModalProps) {
-  const [title, setTitle] = useState('')
-  const [department, setDepartment] = useState('')
-  const [location, setLocation] = useState('')
-  const [type, setType] = useState<Vacancy['type']>('full-time')
-  const [description, setDescription] = useState('')
-  const [requirements, setRequirements] = useState<string[]>([''])
+export default function EditVacancyModal({ open, vacancy, onClose, onUpdate }: EditVacancyModalProps) {
+  const [title, setTitle] = useState(vacancy.title)
+  const [department, setDepartment] = useState(vacancy.department)
+  const [location, setLocation] = useState(vacancy.location)
+  const [type, setType] = useState<Vacancy['type']>(vacancy.type)
+  const [status, setStatus] = useState<Vacancy['status']>(vacancy.status)
+  const [description, setDescription] = useState(vacancy.description)
+  const [requirements, setRequirements] = useState<string[]>(vacancy.requirements.length ? vacancy.requirements : [''])
+  const [hiresTarget, setHiresTarget] = useState(vacancy.hiresTarget)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setTitle(vacancy.title)
+    setDepartment(vacancy.department)
+    setLocation(vacancy.location)
+    setType(vacancy.type)
+    setStatus(vacancy.status)
+    setDescription(vacancy.description)
+    setRequirements(vacancy.requirements.length ? vacancy.requirements : [''])
+    setHiresTarget(vacancy.hiresTarget)
+    setError(null)
+  }, [vacancy])
 
   const addRequirement = () => setRequirements([...requirements, ''])
   const removeRequirement = (i: number) => setRequirements(requirements.filter((_, idx) => idx !== i))
@@ -33,19 +48,20 @@ export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVa
     setSubmitting(true)
     setError(null)
     try {
-      const vacancy = await api.createVacancy({
+      const updated = await api.updateVacancy(vacancy.id, {
         title,
         department,
         location,
         type,
+        status,
         description,
         requirements: requirements.filter(Boolean),
-        hiresTarget: 1,
+        hiresTarget,
       })
-      onCreate(vacancy)
+      onUpdate(updated)
       onClose()
     } catch {
-      setError('Failed to create vacancy. Please try again.')
+      setError('Failed to update vacancy. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -73,8 +89,8 @@ export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVa
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Create Vacancy</h2>
-                  <p className="text-sm text-slate-400 mt-0.5">Add a new open position</p>
+                  <h2 className="text-lg font-semibold text-white">Edit Vacancy</h2>
+                  <p className="text-sm text-slate-400 mt-0.5">Update position details</p>
                 </div>
                 <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-all">
                   <X className="w-5 h-5" />
@@ -132,6 +148,32 @@ export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVa
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Status</label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as Vacancy['status'])}
+                      className="input-field"
+                    >
+                      <option value="active">Active</option>
+                      <option value="paused">Paused</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Hires Target</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={hiresTarget}
+                      onChange={(e) => setHiresTarget(Number(e.target.value))}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">Description</label>
                   <textarea
@@ -176,8 +218,8 @@ export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVa
                 <div className="flex justify-end gap-3 pt-2">
                   <button type="button" onClick={onClose} disabled={submitting} className="btn-ghost">Cancel</button>
                   <button type="submit" disabled={submitting} className="btn-primary">
-                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    {submitting ? 'Creating…' : 'Create Vacancy'}
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {submitting ? 'Saving…' : 'Save Changes'}
                   </button>
                 </div>
               </form>

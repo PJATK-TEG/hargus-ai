@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, ExternalLink, Briefcase, GraduationCap,
   Award, Globe, FileText, MessageSquare, Send, ChevronDown, ChevronUp,
-  File, Clock, User, Sparkles, BookOpen, Shield, Loader2, Play
+  File, Clock, User, Sparkles, BookOpen, Shield, Loader2, Play, Trash2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TextareaAutosize from 'react-textarea-autosize'
@@ -23,6 +23,7 @@ const fileTypeConfig: Record<FileType, { icon: typeof FileText; color: string; b
 
 export default function CandidateDetailPage() {
   const { vacancyId, candidateId } = useParams<{ vacancyId: string; candidateId: string }>()
+  const navigate = useNavigate()
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -54,13 +55,13 @@ export default function CandidateDetailPage() {
   }, [messages, thinking])
 
   const pollTask = async (taskId: string, attempts: number) => {
-    if (attempts >= 8) {
+    if (attempts >= 60) {
       setMessages((prev) => [
         ...prev,
         {
           id: `m${Date.now()}`,
           role: 'assistant' as const,
-          content: 'Your request has been queued for AI analysis. The Temporal worker will process it and results will be available shortly.',
+          content: 'The request timed out. Please try again.',
           timestamp: new Date().toISOString(),
         },
       ])
@@ -75,7 +76,7 @@ export default function CandidateDetailPage() {
           {
             id: `m${Date.now()}`,
             role: 'assistant' as const,
-            content: task.result?.message ?? task.result?.summary ?? 'Analysis complete.',
+            content: task.result?.answer ?? task.result?.message ?? task.result?.summary ?? 'Analysis complete.',
             timestamp: new Date().toISOString(),
           },
         ])
@@ -113,15 +114,17 @@ export default function CandidateDetailPage() {
 
     setThinking(true)
     try {
-      const task = await api.submitAiTask({
-        type: 'candidate_summary',
-        candidateId: candidateId!,
-        prompt,
-      })
+      const task = await api.queryCandidate(candidateId!, prompt, vacancyId)
       pollTask(task.id, 0)
     } catch {
       setThinking(false)
     }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this candidate? This cannot be undone.')) return
+    await api.deleteCandidate(candidateId!)
+    navigate(`/vacancies/${vacancyId}`)
   }
 
   const handleAnalyze = async () => {
@@ -137,7 +140,7 @@ export default function CandidateDetailPage() {
     setMessages((prev) => [...prev, systemMsg])
     setThinking(true)
     try {
-      const task = await api.analyzeCandidate(candidateId!)
+      const task = await api.analyzeCandidate(candidateId!, vacancyId)
       pollTask(task.id, 0)
     } catch {
       setThinking(false)
@@ -255,6 +258,13 @@ export default function CandidateDetailPage() {
               <span className="text-[11px] font-semibold text-aurora-violet whitespace-nowrap">
                 {analyzing ? 'Starting…' : 'Analyze'}
               </span>
+            </button>
+            <button
+              onClick={handleDelete}
+              className="p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/40 transition-all"
+              title="Delete candidate"
+            >
+              <Trash2 className="w-5 h-5 text-red-400" />
             </button>
           </div>
         </div>

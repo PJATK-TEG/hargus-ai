@@ -1,30 +1,28 @@
-from sqlalchemy import select, func
+from __future__ import annotations
+
+import logging
+from datetime import UTC, datetime
+from io import BytesIO
+from uuid import uuid4
+
+from pypdf import PdfReader
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from hargus_api.db.models import (
-    Candidate as DBCandidate,
-    Vacancy as DBVacancy,
-    Message as DBMessage,
-)
-from hargus_api.schemas.domain import Candidate, Message, Vacancy
+from hargus_api.db.models import CandidateFile
+from hargus_api.db.repositories.candidate_repo import CandidateRepository
+from hargus_api.schemas.domain import Candidate
+from hargus_api.storage.factory import get_storage
 
-async def list_vacancies(session: AsyncSession) -> list[Vacancy]:
-    result = await session.execute(select(DBVacancy))
-    return [Vacancy.model_validate(v, from_attributes=True) for v in result.scalars().all()]
+logger = logging.getLogger(__name__)
 
 
-async def get_vacancy(session: AsyncSession, vacancy_id: str) -> Vacancy | None:
-    db_v = await session.get(DBVacancy, vacancy_id)
-    return Vacancy.model_validate(db_v, from_attributes=True) if db_v else None
+async def delete_candidate(session: AsyncSession, candidate_id: str) -> bool:
+    return await CandidateRepository(session).delete(candidate_id)
 
 
 async def list_candidates(session: AsyncSession, vacancy_id: str | None = None) -> list[Candidate]:
-    stmt = select(DBCandidate).options(selectinload(DBCandidate.files))
-    if vacancy_id is not None:
-        stmt = stmt.where(DBCandidate.vacancy_id == vacancy_id)
-    result = await session.execute(stmt)
-    return [Candidate.model_validate(c, from_attributes=True) for c in result.scalars().all()]
+    rows = await CandidateRepository(session).list_all(vacancy_id)
+    return [Candidate.model_validate(c, from_attributes=True) for c in rows]
 
 
 async def list_candidates_paginated(
@@ -34,27 +32,93 @@ async def list_candidates_paginated(
     limit: int = 50,
     offset: int = 0,
 ) -> tuple[list[Candidate], int]:
-    count_stmt = select(func.count(DBCandidate.id))
-    stmt = select(DBCandidate).options(selectinload(DBCandidate.files)).limit(limit).offset(offset)
-    
-    if vacancy_id is not None:
-        count_stmt = count_stmt.where(DBCandidate.vacancy_id == vacancy_id)
-        stmt = stmt.where(DBCandidate.vacancy_id == vacancy_id)
-        
-    total = await session.scalar(count_stmt) or 0
-    result = await session.execute(stmt)
-    
-    return [Candidate.model_validate(c, from_attributes=True) for c in result.scalars().all()], total
+    rows, total = await CandidateRepository(session).list_paginated(
+        vacancy_id, limit=limit, offset=offset
+    )
+    return [Candidate.model_validate(c, from_attributes=True) for c in rows], total
 
 
 async def get_candidate(session: AsyncSession, candidate_id: str) -> Candidate | None:
-    stmt = select(DBCandidate).options(selectinload(DBCandidate.files)).where(DBCandidate.id == candidate_id)
-    result = await session.execute(stmt)
-    db_c = result.scalars().first()
-    return Candidate.model_validate(db_c, from_attributes=True) if db_c else None
+    row = await CandidateRepository(session).get_by_id(candidate_id)
+    return Candidate.model_validate(row, from_attributes=True) if row else None
 
 
-async def get_candidate_messages(session: AsyncSession, candidate_id: str) -> list[Message]:
-    stmt = select(DBMessage).where(DBMessage.candidate_id == candidate_id).order_by(DBMessage.timestamp)
-    result = await session.execute(stmt)
-    return [Message.model_validate(m, from_attributes=True) for m in result.scalars().all()]
+def _extract_text(data: bytes, filename: str) -> str:
+    if filename.lower().endswith(".pdf"):
+        reader = PdfReader(BytesIO(data))
+        return "\n\n".join(p.extract_text() or "" for p in reader.pages)
+    return data.decode("utf-8", errors="replace")
+
+
+def _format_size(n: int) -> str:
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 * 1024:
+        return f"{n / 1024:.1f} KB"
+    return f"{n / (1024 * 1024):.1f} MB"
+
+
+async def create_candidate(
+    session: AsyncSession,
+    vacancy_id: str,
+    cv: tuple[bytes, str],
+    transcripts: list[tuple[bytes, str]],
+) -> Candidate:
+    candidate_id = str(uuid4())
+    now = datetime.now(UTC).isoformat()
+
+    data = {
+        "id": candidate_id,
+        "name": "[run Analyze] New Candidate",
+        "email": "",
+        "phone": "",
+        "location": "",
+        "avatar_initials": "NC",
+        "avatar_color": "#6366F1",
+        "vacancy_id": vacancy_id,
+        "score": 0,
+        "relevancy_score": 0,
+        "tags": [],
+        "status": "new",
+        "parsed_fields": {
+            "summary": "",
+            "skills": [],
+            "skillScores": [],
+            "experience": [],
+            "education": [],
+            "languages": [],
+            "certifications": [],
+            "totalYearsExp": 0,
+        },
+        "applied_at": now,
+    }
+
+    repo = CandidateRepository(session)
+    candidate_row = await repo.create(data)
+
+    all_files: list[tuple[bytes, str, str]] = [
+        (cv[0], cv[1], "cv"),
+        *((b, fn, "transcript") for b, fn in transcripts),
+    ]
+    storage = get_storage()
+    for file_bytes, filename, source_type in all_files:
+        text = _extract_text(file_bytes, filename)
+        file_row = CandidateFile(
+            id=str(uuid4()),
+            candidate_id=candidate_id,
+            type=source_type,
+            name=filename,
+            content=text,
+            uploaded_at=now,
+            size=_format_size(len(file_bytes)),
+        )
+        session.add(file_row)
+        try:
+            key = f"candidates/{candidate_id}/{filename}"
+            await storage.upload(key, file_bytes, content_type="application/octet-stream")
+        except Exception:
+            logger.warning("Storage upload failed for candidate %s file %s", candidate_id, filename)
+
+    await session.commit()
+    await session.refresh(candidate_row, ["files"])
+    return Candidate.model_validate(candidate_row, from_attributes=True)

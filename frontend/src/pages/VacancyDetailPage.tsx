@@ -1,17 +1,28 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, Users, ChevronRight, ExternalLink, Loader2 } from 'lucide-react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, MapPin, Clock, Plus, Users, ChevronRight, ExternalLink, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { formatDate, getStatusColor, getTagColors, cn } from '../lib/utils'
 import { api } from '../lib/api'
 import ScoreRing from '../components/ScoreRing'
+import AddCandidateModal from '../components/AddCandidateModal'
+import EditVacancyModal from '../components/EditVacancyModal'
 import type { Vacancy, Candidate } from '../types'
 
 export default function VacancyDetailPage() {
   const { vacancyId } = useParams<{ vacancyId: string }>()
+  const navigate = useNavigate()
   const [vacancy, setVacancy] = useState<Vacancy | null>(null)
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this vacancy? This cannot be undone.')) return
+    await api.deleteVacancy(vacancyId!)
+    navigate('/vacancies')
+  }
 
   useEffect(() => {
     Promise.all([
@@ -74,7 +85,22 @@ export default function VacancyDetailPage() {
               <span className="text-slate-500">Created {formatDate(vacancy.createdAt)}</span>
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="btn-ghost flex items-center gap-2"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="btn-ghost flex items-center gap-2 text-red-400 hover:text-red-300 hover:border-red-500/30"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+            <div className="h-8 w-px bg-white/10" />
             <div className="text-center">
               <p className="text-2xl font-bold text-white">{candidates.length}</p>
               <p className="text-xs text-slate-500">candidates</p>
@@ -104,7 +130,28 @@ export default function VacancyDetailPage() {
           Candidates
           <span className="text-sm font-normal text-slate-500">({candidates.length})</span>
         </h2>
+        <button onClick={() => setShowAddModal(true)} className="btn-primary">
+          <Plus className="w-4 h-4" />
+          Add Candidate
+        </button>
       </div>
+
+      <AddCandidateModal
+        open={showAddModal}
+        vacancies={vacancy ? [vacancy] : []}
+        defaultVacancyId={vacancyId}
+        onClose={() => setShowAddModal(false)}
+        onCreated={(c) => setCandidates((prev) => [...prev, c])}
+      />
+
+      {vacancy && (
+        <EditVacancyModal
+          open={showEditModal}
+          vacancy={vacancy}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={(updated) => setVacancy(updated)}
+        />
+      )}
 
       {candidates.length === 0 ? (
         <div className="glass-card rounded-2xl p-12 text-center">

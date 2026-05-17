@@ -1,16 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Briefcase, ChevronRight, MapPin, Users, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Briefcase, ChevronRight, MapPin, Plus, Trash2, Users, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import ScoreRing from '../components/ScoreRing'
+import AddCandidateModal from '../components/AddCandidateModal'
 import { cn, formatDate, getStatusColor, getTagColors } from '../lib/utils'
 import { api } from '../lib/api'
 import type { Candidate, Vacancy } from '../types'
 
 export default function CandidatesPage() {
+  const navigate = useNavigate()
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [vacancies, setVacancies] = useState<Vacancy[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    if (!window.confirm('Delete this candidate? This cannot be undone.')) return
+    await api.deleteCandidate(id)
+    setCandidates((prev) => prev.filter((c) => c.id !== id))
+  }
 
   useEffect(() => {
     Promise.all([api.listCandidates(), api.listVacancies()])
@@ -34,10 +44,23 @@ export default function CandidatesPage() {
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white tracking-tight">All Candidates</h1>
-        <p className="text-sm text-slate-400 mt-1">Browse every candidate across all open roles</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">All Candidates</h1>
+          <p className="text-sm text-slate-400 mt-1">Browse every candidate across all open roles</p>
+        </div>
+        <button onClick={() => setShowAddModal(true)} className="btn-primary flex-shrink-0">
+          <Plus className="w-4 h-4" />
+          Add Candidate
+        </button>
       </div>
+
+      <AddCandidateModal
+        open={showAddModal}
+        vacancies={vacancies}
+        onClose={() => setShowAddModal(false)}
+        onCreated={(c) => setCandidates((prev) => [c, ...prev])}
+      />
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
@@ -70,9 +93,9 @@ export default function CandidatesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.04 }}
             >
-              <Link
-                to={`/vacancies/${candidate.vacancyId}/candidates/${candidate.id}`}
-                className="glass-card glass-card-hover rounded-2xl p-5 flex items-center gap-5 group block"
+              <div
+                className="glass-card glass-card-hover rounded-2xl p-5 flex items-center gap-5 group cursor-pointer"
+                onClick={() => navigate(`/vacancies/${candidate.vacancyId}/candidates/${candidate.id}`)}
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
@@ -122,9 +145,18 @@ export default function CandidatesPage() {
                     {candidate.files.length} files
                   </div>
                   <ScoreRing score={candidate.score} size={56} strokeWidth={4} label="Score" />
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => handleDelete(e, candidate.id)}
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="Delete candidate"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </Link>
+              </div>
             </motion.div>
           )
         })}

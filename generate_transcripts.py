@@ -5,7 +5,7 @@ from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
 
 # Setup Ollama running locally (as indicated by your terminal)
-llm = Ollama(model="llama3.1:8b") # using llama3 or adjust to local model
+llm = Ollama(model="llama3.2:3b") # using llama3 or adjust to local model
 
 prompt = PromptTemplate.from_template("""
 You are a hiring manager interviewing a candidate based on their CV.

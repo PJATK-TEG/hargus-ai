@@ -10,7 +10,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # ── Workflow entry ────────────────────────────────────────────────────────────
 
 
@@ -213,6 +212,28 @@ class PDFOutput(BaseModel):
     size_bytes: int
 
 
+# ── Candidate update ─────────────────────────────────────────────────────────
+
+
+class CandidateProfile(BaseModel):
+    name: str = ""
+    email: str = ""
+    phone: str = ""
+    location: str = ""
+    linkedin_url: str = ""
+
+
+class UpdateCandidateProfileInput(BaseModel):
+    candidate_id: str
+    profile: CandidateProfile
+
+
+class UpdateCandidateInput(BaseModel):
+    candidate_id: str
+    consolidated: ConsolidatedFacts
+    score: ScoringResult
+
+
 # ── Final store ───────────────────────────────────────────────────────────────
 
 
@@ -223,6 +244,7 @@ class StoreResultInput(BaseModel):
     report: ReportDraft
     score: ScoringResult
     pdf: PDFOutput | None
+    consolidated: ConsolidatedFacts | None = None  # update moved to update_candidate_activity
     # Langfuse / dashboards — from consolidation (not persisted separately)
     skill_coverage: float = 0.0
     risk_flag_count: int = 0
@@ -234,3 +256,35 @@ class StoreResultInput(BaseModel):
 class MarkTaskFailedInput(BaseModel):
     workflow_run_id: str
     error_message: str
+
+
+# ── Candidate query ───────────────────────────────────────────────────────────
+
+
+class CandidateQueryInput(BaseModel):
+    workflow_run_id: str
+    candidate_id: str
+    vacancy_id: str
+    query: str
+    collection_name: str = ""  # auto-computed in activity if empty
+
+
+class CandidateQueryActivityInput(BaseModel):
+    workflow_run_id: str
+    candidate_id: str
+    vacancy_id: str
+    query: str
+    collection_name: str = ""
+
+
+class CandidateQueryResult(BaseModel):
+    workflow_run_id: str
+    candidate_id: str
+    answer: str
+    sources: list[str] = Field(default_factory=list)
+    confidence: str = "low"
+
+
+class StoreQueryResultInput(BaseModel):
+    workflow_run_id: str
+    result: CandidateQueryResult

@@ -5,7 +5,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
 
-llm = Ollama(model="llama3.1:8b") 
+llm = Ollama(model="llama3.2:3b") 
 
 prompt = PromptTemplate.from_template("""
 You are an expert technical recruiter and hiring manager.

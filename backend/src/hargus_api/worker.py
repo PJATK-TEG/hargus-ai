@@ -11,22 +11,30 @@ from hargus_api.temporal.activities.analysis import (
     run_consistency_check_activity,
     run_interview_insight_activity,
     run_jd_analysis_activity,
+    run_profile_extraction_activity,
 )
 from hargus_api.temporal.activities.embedding import chunk_and_embed_activity
 from hargus_api.temporal.activities.ingestion import (
     load_documents_activity,
     parse_documents_activity,
 )
+from hargus_api.temporal.activities.query import (
+    run_candidate_query_activity,
+    store_query_result_activity,
+)
 from hargus_api.temporal.activities.reporting import (
     draft_report_activity,
     mark_task_failed_activity,
     render_pdf_activity,
     store_and_notify_activity,
+    update_candidate_activity,
+    update_candidate_profile_activity,
 )
 from hargus_api.temporal.activities.scoring import score_candidate_activity
 from hargus_api.temporal.client import create_temporal_client
 from hargus_api.temporal.workflows.ai_tasks import AiTaskWorkflow
 from hargus_api.temporal.workflows.candidate_analysis import CandidateAnalysisWorkflow
+from hargus_api.temporal.workflows.candidate_query import CandidateQueryWorkflow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -77,6 +85,7 @@ async def main() -> None:
         task_queue=settings.temporal_task_queue,
         workflows=[
             CandidateAnalysisWorkflow,
+            CandidateQueryWorkflow,
             AiTaskWorkflow,  # kept for backwards compat
         ],
         activities=[
@@ -93,6 +102,12 @@ async def main() -> None:
             consolidate_facts_activity,
             # Scoring
             score_candidate_activity,
+            update_candidate_activity,
+            update_candidate_profile_activity,
+            run_profile_extraction_activity,
+            # Query
+            run_candidate_query_activity,
+            store_query_result_activity,
             # Reporting
             draft_report_activity,
             render_pdf_activity,

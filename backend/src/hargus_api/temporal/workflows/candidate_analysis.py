@@ -14,6 +14,7 @@ with workflow.unsafe.imports_passed_through():
         run_consistency_check_activity,
         run_interview_insight_activity,
         run_jd_analysis_activity,
+        run_profile_extraction_activity,
     )
     from hargus_api.temporal.activities.embedding import chunk_and_embed_activity
     from hargus_api.temporal.activities.ingestion import (
@@ -25,6 +26,8 @@ with workflow.unsafe.imports_passed_through():
         mark_task_failed_activity,
         render_pdf_activity,
         store_and_notify_activity,
+        update_candidate_activity,
+        update_candidate_profile_activity,
     )
     from hargus_api.temporal.activities.scoring import score_candidate_activity
     from hargus_api.temporal.models import (
@@ -33,10 +36,12 @@ with workflow.unsafe.imports_passed_through():
         ChunkEmbedInput,
         ConsolidateInput,
         LoadDocumentsInput,
+        MarkTaskFailedInput,
         ParseDocumentsInput,
         ReportDraftInput,
         StoreResultInput,
-        MarkTaskFailedInput,
+        UpdateCandidateInput,
+        UpdateCandidateProfileInput,
     )
 
 # Retry policies
@@ -105,7 +110,7 @@ class CandidateAnalysisWorkflow:
             )
 
             # ── Phase 3: Parallel agent analysis ─────────────────────────────
-            rubric, candidate_facts, interview_findings, risk_flags = await asyncio.gather(
+            rubric, candidate_facts, interview_findings, risk_flags, profile = await asyncio.gather(
                 workflow.execute_activity(
                     run_jd_analysis_activity, agent_input, **_OPTS_LLM
                 ),
@@ -118,6 +123,19 @@ class CandidateAnalysisWorkflow:
                 workflow.execute_activity(
                     run_consistency_check_activity, agent_input, **_OPTS_LLM
                 ),
+                workflow.execute_activity(
+                    run_profile_extraction_activity, agent_input, **_OPTS_LLM
+                ),
+            )
+
+            # ── Phase 3.5: Back-fill candidate profile from CV ────────────────
+            await workflow.execute_activity(
+                update_candidate_profile_activity,
+                UpdateCandidateProfileInput(
+                    candidate_id=inp.candidate_id,
+                    profile=profile,
+                ),
+                **_OPTS_FAST,
             )
 
             # ── Phase 4: Consolidation (deterministic) ────────────────────────
@@ -138,6 +156,17 @@ class CandidateAnalysisWorkflow:
             # ── Phase 5: Scoring (deterministic) ─────────────────────────────
             score = await workflow.execute_activity(
                 score_candidate_activity, consolidated, **_OPTS_FAST
+            )
+
+            # ── Phase 5.5: Persist candidate facts ───────────────────────────
+            await workflow.execute_activity(
+                update_candidate_activity,
+                UpdateCandidateInput(
+                    candidate_id=inp.candidate_id,
+                    consolidated=consolidated,
+                    score=score,
+                ),
+                **_OPTS_FAST,
             )
 
             # ── Phase 6: Report drafting (LLM) ───────────────────────────────

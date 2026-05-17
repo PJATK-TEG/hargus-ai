@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
@@ -90,9 +91,10 @@ def build_json_chain(llm: BaseChatModel, system_prompt: str, human_template: str
     parse JSON examples in the prompt as Python f-string template variables.
     HumanMessagePromptTemplate still supports {variable} substitution.
     """
+    dated_prompt = system_prompt + f"\n\nToday's date: {date.today().isoformat()}"
     prompt = ChatPromptTemplate.from_messages(
         [
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=dated_prompt),
             HumanMessagePromptTemplate.from_template(human_template),
         ]
     )
