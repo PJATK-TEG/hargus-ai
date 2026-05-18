@@ -1,0 +1,104 @@
+INTERVIEW TRANSCRIPT
+============================================================
+Candidate:      Ethan Patel
+Position:       Senior Cybersecurity Specialist
+Interviewer:    Rachel Lee
+Date:           2026-05-18
+Interview Type: BEHAVIOURAL
+============================================================
+
+[1] INTERVIEWER
+Tell me about yourself and what draws you to this Senior Cybersecurity Specialist role specifically.
+
+[1] Ethan Patel
+Hi, my name is Ethan Patel. I have a bachelor's degree in Computer Science and have been working in cybersecurity for about five years. My most recent role was as a junior cybersecurity analyst. I'm drawn to this role because I want to move into a more senior position and this seemed like a good opportunity.
+
+------------------------------------------------------------
+
+[2] INTERVIEWER
+Describe a time you identified a significant security risk and convinced stakeholders to take action.
+
+[2] Ethan Patel
+In my current role I noticed that some servers had outdated SSL certificates that had expired. I flagged it to my manager in an email. The team eventually patched it a few weeks later. It wasn't a dramatic process — I reported it through the normal ticket system and my manager handled the stakeholder communication.
+
+------------------------------------------------------------
+
+[3] INTERVIEWER
+Tell me about a time you had to manage a cybersecurity incident under pressure. How did you handle it?
+
+[3] Ethan Patel
+We once had a phishing email that several employees clicked on. I helped the senior analyst by collecting affected user information and resetting passwords. The senior analyst led the investigation. It was stressful because things moved quickly, but I followed the instructions I was given and tried to stay calm.
+
+------------------------------------------------------------
+
+[4] INTERVIEWER
+Give me an example of a time you led a team or project. What was the outcome?
+
+[4] Ethan Patel
+I haven't formally led a team yet. I did lead a small internal project where I put together a short security awareness presentation for about ten colleagues. I researched the content, made the slides, and delivered it. It was well received but it was more of a one-time task than an ongoing leadership role.
+
+------------------------------------------------------------
+
+[5] INTERVIEWER
+Describe a situation where you had to adapt quickly to a major change in your work environment or security landscape.
+
+[5] Ethan Patel
+When our company shifted some workloads to AWS I had to quickly learn how cloud security differs from on-premise. I took some online courses and read documentation over a couple of weekends. It was a bit overwhelming at first but I managed to get a basic understanding so I could continue my regular work.
+
+------------------------------------------------------------
+
+[6] INTERVIEWER
+Tell me about a time you disagreed with a colleague or manager about a security decision. How did you handle it?
+
+[6] Ethan Patel
+I once felt that a firewall rule being proposed was too permissive, but I wasn't fully confident in my own assessment. I mentioned my concern quietly to a colleague, and they agreed with me, but neither of us escalated it formally. Looking back, I probably should have raised it more directly with the manager.
+
+------------------------------------------------------------
+
+[7] INTERVIEWER
+How do you approach building security awareness among non-technical employees?
+
+[7] Ethan Patel
+I think training and communication are important. I helped put together a phishing awareness email that was sent out company-wide. I also contributed to a one-page security tip sheet. I believe people respond better when the content is simple and relatable rather than overly technical.
+
+------------------------------------------------------------
+
+[8] INTERVIEWER
+Tell me about your approach to continuous learning and how you keep your skills up to date.
+
+[8] Ethan Patel
+I read security blogs when I have time and occasionally watch webinars. I've completed a few online courses on Udemy. I try to follow industry news to understand the current threat landscape. I know I need to dedicate more structured time to learning, especially toward earning certifications.
+
+------------------------------------------------------------
+
+[9] INTERVIEWER
+Describe a time you had to communicate a complex security issue to a non-technical audience.
+
+[9] Ethan Patel
+I once explained to an HR manager why multi-factor authentication was being rolled out. She was initially resistant because it added extra steps. I tried to explain it simply by comparing it to needing both a key and a passcode to open a safe. She seemed to understand better after that.
+
+------------------------------------------------------------
+
+[10] INTERVIEWER
+Where do you see yourself in three years, and how does this role fit into that plan?
+
+[10] Ethan Patel
+In three years I'd like to have grown into a fully-fledged senior role and ideally have my CISSP certification. I see this role as a way to get exposure to senior-level responsibilities and learn from experienced colleagues. I'm aware there will be a learning curve but I'm committed to putting in the work.
+
+------------------------------------------------------------
+
+[11] INTERVIEWER
+What do you believe is your biggest professional weakness and how are you working to address it?
+
+[11] Ethan Patel
+My biggest weakness is probably my lack of leadership experience. I'm good at executing tasks individually but I haven't yet had the opportunity to lead a team. I'm trying to address that by volunteering for coordination tasks and looking for opportunities to mentor newer colleagues informally.
+
+------------------------------------------------------------
+
+[12] INTERVIEWER
+Do you have any questions for us about the role or the team?
+
+[12] Ethan Patel
+Yes — I'd be curious to know what the mentorship or onboarding structure looks like for someone stepping into this role, and whether there are opportunities for training and certification support.
+
+------------------------------------------------------------

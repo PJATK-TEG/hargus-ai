@@ -1,0 +1,104 @@
+INTERVIEW TRANSCRIPT
+============================================================
+Candidate:      Ryan Thompson
+Position:       Senior Cybersecurity Specialist
+Interviewer:    Emily Chen
+Date:           2026-05-18
+Interview Type: TECHNICAL
+============================================================
+
+[1] INTERVIEWER
+Walk me through how you would architect a zero-trust security model for a large enterprise with hybrid on-premise and multi-cloud infrastructure.
+
+[1] Ryan Thompson
+Zero-trust is built on "never trust, always verify," so the architecture starts by eliminating implicit trust based on network location. I'd begin with identity as the new perimeter — deploying an identity provider with MFA enforced universally and using conditional access policies that evaluate device health, user risk score, and location before granting access. For network segmentation I'd implement micro-segmentation using software-defined networking so that even within the LAN there's no assumed trust between workloads. On the cloud side, I'd ensure each cloud tenant uses its own IAM policy boundaries with service control policies and apply a cloud access security broker for visibility into SaaS usage. Every access request gets evaluated in real time against policy, and I'd use continuous behavioural analytics to detect anomalies. The whole model is underpinned by comprehensive logging to a centralised SIEM for correlation and detection.
+
+------------------------------------------------------------
+
+[2] INTERVIEWER
+You mentioned SIEM. How would you design and tune a detection-engineering programme to reduce false positives while improving detection fidelity?
+
+[2] Ryan Thompson
+I'd approach detection engineering the same way developers approach software — with versioned rules stored in source control, peer review before deployment, and continuous performance metrics. Each detection rule should have defined true positive and false positive rates tracked over a 90-day window. When a rule generates a high false-positive rate, it gets tuned against baseline telemetry or replaced with a more precise logic tree. I also prioritise detection coverage using the MITRE ATT&CK framework — mapping our rule library to the TTPs most relevant to our threat actors and identifying coverage gaps systematically. Alert fatigue is addressed by routing lower-confidence alerts to automated enrichment and triage workflows rather than directly to analysts, reserving human attention for high-confidence alerts.
+
+------------------------------------------------------------
+
+[3] INTERVIEWER
+Describe your experience leading a penetration test engagement. What was the most technically complex finding you've produced?
+
+[3] Ryan Thompson
+I led an internal red team engagement targeting a financial services client. The most technically complex finding was an Active Directory privilege escalation chain. Using BloodHound I identified a path from a low-privileged service account to Domain Admin through a combination of an ACL misconfiguration — GenericAll on a group object — and unconstrained Kerberos delegation on a server in the path. I demonstrated the full exploitation chain including Kerberoasting the service account, abusing the ACL to add ourselves to the privileged group, and then using the unconstrained delegation to capture a Domain Admin TGT. The remediation recommendations included removing the GenericAll ACE, disabling unconstrained delegation, and implementing tiered administration to limit the blast radius of credential compromise.
+
+------------------------------------------------------------
+
+[4] INTERVIEWER
+How have you integrated threat intelligence operationally into incident response and detection workflows?
+
+[4] Ryan Thompson
+I built a threat intelligence programme at my last organisation that operationalised intel at multiple levels. Tactically, we ingested STIX/TAXII feeds from ISACs relevant to our industry and automatically pushed IOCs — IPs, domains, file hashes — into the SIEM and DNS sinkholes for blocking and alerting. Operationally, I ran bi-weekly threat briefings using finished intelligence reports to inform our threat hunting workqueue, mapping actor TTPs to our environment using ATT&CK Navigator. Strategically, I produced quarterly threat landscape reports for the CISO and board that connected external trends to our specific risk posture. The programme reduced mean time to detect known-threat indicators by approximately 40% in the first year.
+
+------------------------------------------------------------
+
+[5] INTERVIEWER
+Walk me through how you would implement a cloud security posture management programme across AWS, Azure, and GCP.
+
+[5] Ryan Thompson
+I'd start with a CSPM tool — Prisma Cloud or Wiz — that provides multi-cloud visibility from a single pane. The first phase is discovery and inventory: get a comprehensive asset map across all accounts and subscriptions. Then I'd apply a security benchmark baseline — CIS benchmarks for each cloud provider — and generate a prioritised findings list. I'd integrate CSPM alerts into the SIEM and ticketing system so findings generate work items with SLA targets by severity. For infrastructure-as-code, I'd add policy-as-code scanning using OPA or Checkov in the CI/CD pipeline so misconfigurations are caught at the PR stage before they reach production. I'd also enable cloud-native services — AWS GuardDuty, Azure Defender, GCP Security Command Center — for runtime threat detection, feeding their findings into the central SIEM for unified correlation.
+
+------------------------------------------------------------
+
+[6] INTERVIEWER
+How do you approach securing a software supply chain, particularly in the context of recent high-profile attacks like SolarWinds or the XZ Utils backdoor?
+
+[6] Ryan Thompson
+Software supply chain security requires controls at multiple points. On the dependency side, I'd implement software composition analysis in the CI pipeline to track third-party libraries against vulnerability databases and licence policies, and enforce an approved-component registry for critical applications. For internal build integrity, I'd implement a secure build pipeline — signed artefacts with attestations using Sigstore or similar — so the provenance of every build artefact can be verified. For third-party software, I'd require SBOMs from vendors and include supply chain security clauses in vendor contracts, with a right-to-audit clause. For build infrastructure, I'd apply strict access controls to the CI/CD environment, monitor for anomalous access to build runners, and isolate build environments from production networks. None of this eliminates risk, but it significantly raises the cost and complexity for an attacker attempting to tamper with the supply chain.
+
+------------------------------------------------------------
+
+[7] INTERVIEWER
+Describe your experience with GDPR and HIPAA compliance from a technical implementation standpoint.
+
+[7] Ryan Thompson
+For GDPR I've led several Article 32 technical measures implementations. The most significant was a data classification and encryption programme that covered data at rest, in transit, and in processing — including pseudonymisation of PII fields in production databases with a key management system using AWS KMS. I also implemented a data subject access request workflow with automated discovery using data mapping tooling. For HIPAA, I've implemented the required technical safeguards for ePHI including audit controls, automatic logoff, encryption, and access control reviews. I've also worked on breach notification procedures aligned with the 60-day HIPAA reporting timeline and integrated those with the IR plan.
+
+------------------------------------------------------------
+
+[8] INTERVIEWER
+If you joined us next month, what would your 90-day technical roadmap look like?
+
+[8] Ryan Thompson
+Days one through thirty would be almost entirely listening and learning. I'd review every policy, standard, and procedure; map all key assets and data flows; interview stakeholders across IT, development, and the business; and read any prior audit or assessment findings. My goal is to understand the current state thoroughly before forming opinions. Days thirty to sixty, I'd conduct a structured gap analysis against our applicable frameworks — likely NIST CSF and the relevant compliance requirements — and produce a risk-tiered remediation roadmap. I'd also identify any quick wins — things like critical misconfigurations or missing basic controls — that I can resolve immediately to build credibility and reduce risk fast. Days sixty to ninety, I'd begin executing on the top-priority items, establish a threat detection baseline, and start shaping the longer-term programme priorities in consultation with the CISO or leadership.
+
+------------------------------------------------------------
+
+[9] INTERVIEWER
+How would you handle a situation where a critical zero-day vulnerability was disclosed on a Friday afternoon affecting a core system you manage?
+
+[9] Ryan Thompson
+First, immediately assess whether we're running the affected software version and where. If we are, convene an emergency response call within the hour with the relevant asset owners, IT ops, and any vendor contacts. While we're assessing exploitability in our specific configuration, I'd implement compensating controls — network isolation of the affected system if it's internet-facing, WAF rules if a signature is available, or temporary service suspension if the risk is unacceptable and the business can tolerate it. I'd maintain continuous communication with the CISO and business stakeholders on our status and estimated patch timeline. Over the weekend, I'd work with the infrastructure team to test and deploy the vendor patch in a staging environment, and push to production as soon as we've validated it. Throughout, I'd document every decision and action for the incident record.
+
+------------------------------------------------------------
+
+[10] INTERVIEWER
+What do you see as the most underestimated technical challenge in enterprise cybersecurity today?
+
+[10] Ryan Thompson
+Asset inventory. It's unglamorous compared to threat hunting or AI-driven detection, but nearly every major breach I've studied traces back — at some point — to an unknown or unmanaged asset that wasn't in scope for vulnerability management or monitoring. Shadow IT, forgotten cloud resources, end-of-life systems that nobody wanted to touch — these create the gaps that attackers exploit. Organisations consistently underinvest in the discipline of knowing exactly what they have, where it is, and who's responsible for it. If you don't have that foundation, no amount of sophisticated tooling on top of it will close the risk.
+
+------------------------------------------------------------
+
+[11] INTERVIEWER
+What certifications do you hold and how have they shaped your practical approach?
+
+[11] Ryan Thompson
+I hold CISSP, OSCP, and AWS Certified Security Specialty. The CISSP gave me the breadth to think about security architecturally and at a programme level. The OSCP had the biggest practical impact — spending months finding and exploiting vulnerabilities hands-on fundamentally changed how I think about defensive controls, because you understand exactly how attackers think about bypassing them. The AWS certification deepened my cloud security knowledge at a specific platform level. I'm currently pursuing GREM, the GIAC malware analysis certification, because understanding adversary tooling at that depth is increasingly valuable for detection engineering.
+
+------------------------------------------------------------
+
+[12] INTERVIEWER
+Any technical questions for us?
+
+[12] Ryan Thompson
+I'd like to understand your current detection coverage — particularly how you're tracking against MITRE ATT&CK — and whether there are specific threat actors or TTPs that the team considers priority areas. I'd also be curious about the maturity of your vulnerability management programme and what the current mean time to remediate looks like for critical findings.
+
+------------------------------------------------------------

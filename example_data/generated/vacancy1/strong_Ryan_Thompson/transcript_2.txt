@@ -1,0 +1,104 @@
+INTERVIEW TRANSCRIPT
+============================================================
+Candidate:      Ryan Thompson
+Position:       Senior Cybersecurity Specialist
+Interviewer:    Emily Patel
+Date:           2026-05-18
+Interview Type: BEHAVIOURAL
+============================================================
+
+[1] INTERVIEWER
+Tell me about yourself and what's drawn you to cybersecurity as a long-term career.
+
+[1] Ryan Thompson
+I've been in cybersecurity for just over a decade. What keeps me here is the combination of intellectual challenge and genuine impact — mistakes in this field have real consequences for real people, and that sense of responsibility keeps me sharp and motivated. I started in network security, moved into penetration testing, and for the last four years I've been in senior leadership roles overseeing both offensive security programmes and defensive operations. I find the breadth of the field — technical depth combined with strategy, communication, and culture — is exactly the kind of work I want to be doing.
+
+------------------------------------------------------------
+
+[2] INTERVIEWER
+Describe a time you had to build a business case for a significant security investment and bring leadership along on a decision they were sceptical of.
+
+[2] Ryan Thompson
+I proposed a full endpoint detection and response replacement — retiring our legacy AV in favour of a modern EDR platform — at a time when the budget was tight and leadership saw it as a "nice to have." I built a case grounded in data: our mean time to detect was well above industry benchmarks, we'd had two incidents in the prior year where the legacy tool failed to detect the initial access technique, and I commissioned a red team exercise that demonstrated the gap live to the CISO and CTO. I also modelled the cost of one mid-sized breach against the three-year cost of the platform. The investment was approved within the month and the platform has since contributed to multiple detections that would have been missed.
+
+------------------------------------------------------------
+
+[3] INTERVIEWER
+Tell me about the most complex cross-functional security programme you've led. What made it difficult and how did you navigate that?
+
+[3] Ryan Thompson
+The most complex was a company-wide zero-trust transformation that touched identity, network, device management, and application access — across five business units with their own IT teams and no prior culture of centralised security governance. The political difficulty was significant: local IT teams felt their autonomy was being eroded. I addressed it by co-designing the target state with representatives from each business unit rather than handing them a mandate. I established a governance forum with business unit security leads that met fortnightly and gave them real input into implementation sequencing. Progress was slower than a top-down mandate would have been, but adoption was dramatically better and we didn't have shadow resistance undermining the rollout.
+
+------------------------------------------------------------
+
+[4] INTERVIEWER
+Give me an example of a security project or decision that didn't work out the way you planned. What went wrong and what did you take away from it?
+
+[4] Ryan Thompson
+I once led a phishing simulation campaign that was overly aggressive in its framing — it simulated a fake HR communication about redundancies. The technical results were useful from a security standpoint, but the emotional impact on employees was significant, and several people complained that it felt manipulative and damaged trust in both the HR and security functions. I underestimated the cultural dimension. I met with HR leadership, acknowledged the misjudgement directly, and redesigned the programme to use less sensitive pretexts. The episode made me a much more thoughtful programme designer — security interventions that feel adversarial to employees undermine the culture you're trying to build.
+
+------------------------------------------------------------
+
+[5] INTERVIEWER
+Describe a time you had to manage significant conflict between the security function and another team. How did you resolve it?
+
+[5] Ryan Thompson
+Early in a role I had an extended conflict with the head of software engineering who believed the security review gates I'd put in place were slowing down their release cadence unacceptably. He escalated to the CTO. Rather than defending my position at that level, I proposed a joint working group with engineering to redesign the process. We replaced the synchronous security review gate with asynchronous security tooling integrated into the CI pipeline and shifted the human review to architecture decisions at the design phase rather than code review at the end. Release velocity improved, security coverage stayed the same, and engineering went from seeing security as an adversary to referencing our collaboration as a model for how security should work. The CTO specifically called it out in an all-hands.
+
+------------------------------------------------------------
+
+[6] INTERVIEWER
+Tell me about a time you had to make a high-stakes decision quickly during an active security incident with limited information.
+
+[6] Ryan Thompson
+We had an active incident where telemetry suggested a threat actor had established persistence in our environment, but we didn't yet know the scope. The decision I had to make within the first hour was whether to take down the potentially compromised segment — which would have caused significant business disruption — or maintain operations while we gathered more information. I chose a middle path: I isolated the segment from the internet and from other internal segments using firewall rules, which contained the potential blast radius without a full takedown. We then had two hours of forensic time before business impact was meaningful. That time confirmed the scope, and it turned out the containment was sufficient. The decision to contain without shutting down completely was vindicated, but I was clear with leadership when I made it that I was accepting some uncertainty in exchange for business continuity.
+
+------------------------------------------------------------
+
+[7] INTERVIEWER
+How do you approach building and developing a security team? What's your philosophy as a leader?
+
+[7] Ryan Thompson
+My core belief is that people do their best work when they understand why something matters, not just what to do. So I invest heavily in context — making sure the team understands the threat landscape, the organisation's risk tolerance, and how their work connects to real outcomes. On development, I try to match individuals to stretch assignments that are at the edge of their current capability with appropriate support, rather than just slotting people into their comfort zones. I also believe strongly in a blameless culture for mistakes made in good faith — post-incident reviews focus on systemic improvements, not individual failure. That psychological safety is what makes people willing to escalate problems early rather than trying to quietly fix them.
+
+------------------------------------------------------------
+
+[8] INTERVIEWER
+Describe how you've managed stakeholder communication during a major security incident, particularly with non-technical senior leaders.
+
+[8] Ryan Thompson
+My approach is to communicate in layers of certainty. I establish a regular cadence of updates — for major incidents, every two hours — and I'm explicit about what we know, what we don't know, and what we're doing to find out. I use plain language for executive audiences: "We believe an attacker had access to systems containing customer payment data for approximately six hours. We've now contained the access and have engaged our forensics vendor to determine whether data was exfiltrated. We will have a more precise answer within 24 hours." I try to avoid both under-communicating — which breeds anxiety and speculation — and over-communicating technical detail that creates noise. I also brief senior leadership before they hear from other sources so they're never in the position of being surprised.
+
+------------------------------------------------------------
+
+[9] INTERVIEWER
+What's your approach to security culture and how have you measurably improved it at a previous organisation?
+
+[9] Ryan Thompson
+I think culture is the residue of consistent behaviour and visible leadership commitment, not training programmes. At my last organisation I implemented three things that moved the needle measurably: first, a low-friction internal reporting mechanism for suspicious activity, which increased reporting volume by 300% in six months and led to two genuine phishing campaign detections through employee reports rather than technical controls. Second, I made security metrics visible to the whole organisation through a monthly digest — not just compliance metrics but things like "open high-severity vulnerabilities" and "mean time to patch" — which created healthy accountability because teams could see where they stood. Third, I worked with engineering leadership to recognise security contributions in performance reviews, so finding and reporting a security issue was tied to career development, not just treated as extra work.
+
+------------------------------------------------------------
+
+[10] INTERVIEWER
+Where do you see yourself professionally in the next five years, and how does this role fit into that?
+
+[10] Ryan Thompson
+My goal is to be in a CISO role within three to five years, leading security at a strategic level with full accountability for the programme. This role is a deliberate step toward that because it offers the combination of senior individual contributor technical work and programme leadership that I need to round out my experience. I want to continue exercising deep technical skills while building demonstrated success in building and maturing an enterprise security function — which is exactly what a CISO role demands. I'm not looking for a title; I'm looking for the depth of experience and impact that makes me genuinely ready for that level of responsibility.
+
+------------------------------------------------------------
+
+[11] INTERVIEWER
+What do you consider the hardest part of working in cybersecurity from a personal standpoint?
+
+[11] Ryan Thompson
+The persistent tension between comprehensiveness and pragmatism. There is always more risk than any reasonable security programme can eliminate, and you have to make peace with that. The hardest decisions are not technical — they're judgement calls about what level of residual risk is acceptable given business constraints. Early in my career I was uncomfortable with those grey areas. Over time I've learned to be decisive with incomplete information, transparent about the uncertainty involved, and rigorous about monitoring the assumptions my decisions rest on so I can course-correct quickly. Accepting that perfect is the enemy of good, in security as in everything else, took me time to genuinely internalise.
+
+------------------------------------------------------------
+
+[12] INTERVIEWER
+Do you have any questions for us about the team or organisation?
+
+[12] Ryan Thompson
+I'd like to understand the current relationship between security and the executive team — specifically whether the CISO or equivalent role has a direct line to the board, and how security risk is currently presented to senior leadership. I'd also be interested in understanding what the biggest unsolved cultural challenge is for the security function, because that's often where the real work is.
+
+------------------------------------------------------------

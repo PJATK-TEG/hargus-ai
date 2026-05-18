@@ -1,0 +1,62 @@
+**Job Title:** Senior .NET + Go Developer
+
+**Job Summary:**
+
+We are seeking a highly experienced and skilled Senior .NET + Go Developer to join our team. The successful candidate will be responsible for designing, developing, and maintaining our organization's software applications, including .NET-based applications and Go-based microservices. The Senior .NET + Go Developer will work closely with our development team to ensure the delivery of high-quality software solutions that meet our business requirements.
+
+**Key Responsibilities:**
+
+* Design, develop, and maintain .NET-based applications, including Windows Forms, WPF, and ASP.NET Core
+* Design, develop, and maintain Go-based microservices, including Go Web frameworks such as Revel and Gin
+* Collaborate with the development team to identify and prioritize project requirements and deliver software solutions that meet business needs
+* Write high-quality, efficient, and well-documented code to meet project requirements
+* Troubleshoot and resolve complex technical issues and bugs
+* Participate in code reviews and contribute to the improvement of the codebase
+* Collaborate with the QA team to ensure the delivery of high-quality software solutions
+* Stay up-to-date with the latest .NET and Go technologies and trends, and apply this knowledge to inform our organization's software strategy
+* Participate in design reviews and contribute to the development of our organization's technical architecture
+* Collaborate with the DevOps team to ensure the smooth operation of our software applications
+* Develop and maintain automated testing and deployment scripts using tools such as Jenkins, GitLab CI/CD, and Docker
+
+**Requirements:**
+
+* Bachelor's degree in Computer Science, Information Technology, or related field
+* 5-7 years of experience in .NET and Go development, with at least 3 years in a senior role
+* Proficiency in .NET Framework 4.6 or higher, including C#, F#, and Visual Basic .NET
+* Strong understanding of Go programming language, including Go Web frameworks such as Revel and Gin
+* Experience with Go-based microservices, including containerization using Docker
+* Familiarity with Agile development methodologies and version control systems, including Git
+* Strong analytical and problem-solving skills, with the ability to analyze complex technical issues and develop effective solutions
+* Excellent communication and interpersonal skills, with the ability to collaborate with stakeholders and team members
+* Ability to work independently and as part of a team
+* Strong attention to detail and ability to meet deadlines
+
+**Nice to Have:**
+
+* Experience with cloud-based .NET and Go platforms, including Azure, AWS, and Google Cloud
+* Experience with containerization using Docker
+* Experience with automation using tools such as Ansible, Puppet, or Chef
+* Experience with Java-based technologies, including Spring Boot and Hibernate
+* Familiarity with machine learning and artificial intelligence using Go-based frameworks such as TensorFlow and Core ML
+
+**Skills:**
+
+* .NET Framework 4.6 or higher
+* Go programming language
+* C#, F#, and Visual Basic .NET
+* Revel and Gin Go Web frameworks
+* Docker
+* Jenkins, GitLab CI/CD, and other continuous integration and continuous deployment tools
+* Agile development methodologies
+* Git
+* Azure, AWS, and Google Cloud
+* Java-based technologies, including Spring Boot and Hibernate
+* Machine learning and artificial intelligence using Go-based frameworks
+
+**Benefits:**
+
+* Comprehensive benefits package, including health insurance, retirement savings, and paid time off
+* Opportunities for professional growth and development, including training and education programs
+* Collaborative and dynamic work environment with a team of experienced software developers
+* Flexible work arrangements, including remote work options
+
