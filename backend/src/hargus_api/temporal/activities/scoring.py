@@ -16,12 +16,20 @@ _COMMUNICATION_SCORE = {"strong": 100.0, "adequate": 65.0, "weak": 30.0, "unknow
 @activity.defn
 async def score_candidate_activity(facts: ConsolidatedFacts) -> ScoringResult:
     """Compute a deterministic score from consolidated facts."""
-    # Skill match (0–100)
+    # Skill match (0–100); preferred skills add up to 10 bonus points
     skill_score = round(facts.skill_coverage * 100, 1)
+    preferred_bonus = round(facts.preferred_coverage * 10.0, 1)
+    skill_score = min(skill_score + preferred_bonus, 100.0)
 
     # Experience score (0–100) — linear up to required years, capped at 100
+    # Cap self-reported years at the sum-of-entries derived value to prevent inflation
     required_years = facts.rubric.experience_years_min or 1
-    actual_years = facts.candidate_facts.total_years_experience
+    entries = facts.candidate_facts.experience_entries
+    if entries:
+        derived_years = sum(e.duration_months for e in entries) / 12.0
+        actual_years = min(facts.candidate_facts.total_years_experience, derived_years)
+    else:
+        actual_years = facts.candidate_facts.total_years_experience
     exp_score = round(min(actual_years / required_years, 1.0) * 100, 1)
 
     # Interview score (0–100)
@@ -74,6 +82,7 @@ async def score_candidate_activity(facts: ConsolidatedFacts) -> ScoringResult:
         recommendation=recommendation,  # type: ignore[arg-type]
         score_breakdown={
             "skill": skill_score,
+            "preferred_bonus": preferred_bonus,
             "experience": exp_score,
             "interview": interview_score,
             "penalty": -penalty,

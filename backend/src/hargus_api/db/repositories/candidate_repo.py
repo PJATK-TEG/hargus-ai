@@ -65,6 +65,7 @@ class CandidateRepository:
         candidate_id: str,
         parsed_fields: dict,
         score: int,
+        relevancy_score: int = 0,
     ) -> None:
         candidate = await self._session.get(Candidate, candidate_id)
         if candidate is None:
@@ -72,6 +73,7 @@ class CandidateRepository:
             return
         candidate.parsed_fields = parsed_fields
         candidate.score = score
+        candidate.relevancy_score = relevancy_score
 
     async def delete(self, candidate_id: str) -> bool:
         candidate = await self._session.get(Candidate, candidate_id)

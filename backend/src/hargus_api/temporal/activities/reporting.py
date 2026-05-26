@@ -19,6 +19,7 @@ from hargus_api.db.base import AsyncSessionLocal
 from hargus_api.db.repositories.candidate_repo import CandidateRepository
 from hargus_api.db.repositories.workflow_run_repo import WorkflowRunRepository
 from hargus_api.repositories.ai_task_repository import normalize_postgres_url
+from hargus_api.services.message_service import save_message
 from hargus_api.storage.factory import get_storage
 from hargus_api.temporal.activity_utils import heartbeat_while
 from hargus_api.temporal.models import (
@@ -205,16 +206,29 @@ _FALLBACK_SUMMARY = "Report generation failed. Manual review required."
 async def update_candidate_activity(inp: UpdateCandidateInput) -> None:
     """Persist extracted candidate facts and score to the candidates table."""
     facts = inp.consolidated.candidate_facts
+    consolidated = inp.consolidated
+    summary = inp.report.executive_summary if inp.report else ""
+
+    skill_score_map: dict[str, int] = {}
+    for s in consolidated.matched_skills:
+        skill_score_map[s] = 100
+    for s in consolidated.preferred_matched:
+        if s not in skill_score_map:
+            skill_score_map[s] = 75
+    for s in consolidated.missing_skills:
+        skill_score_map[s] = 0
+    skill_scores = [{"skill": s, "score": v} for s, v in skill_score_map.items()]
+
     parsed_fields = {
-        "summary": "",
+        "summary": summary,
         "skills": facts.skills,
-        "skillScores": [{"skill": s, "score": 0} for s in facts.skills],
+        "skillScores": skill_scores,
         "experience": [
             {
                 "company": e.company,
                 "role": e.role,
-                "from": "N/A",
-                "to": "N/A",
+                "from": e.from_date or "N/A",
+                "to": e.to_date or "N/A",
                 "description": e.description,
             }
             for e in facts.experience_entries
@@ -234,7 +248,10 @@ async def update_candidate_activity(inp: UpdateCandidateInput) -> None:
     }
     async with AsyncSessionLocal() as session:
         await CandidateRepository(session).update_from_analysis(
-            inp.candidate_id, parsed_fields, round(inp.score.overall_score)
+            inp.candidate_id,
+            parsed_fields,
+            round(inp.score.overall_score),
+            relevancy_score=round(inp.score.skill_match_score),
         )
         await session.commit()
     logger.info("update_candidate: saved facts for candidate %s", inp.candidate_id)
@@ -278,6 +295,13 @@ def _terminal_coercion_count(inp: StoreResultInput) -> int:
 @activity.defn
 async def store_and_notify_activity(inp: StoreResultInput) -> None:
     """Persist the report to the database and mark the workflow run complete."""
+    score_val = round(inp.score.overall_score)
+    message_content = (
+        f"**Analysis complete.** Score: {score_val}/100 · "
+        f"Recommendation: {inp.report.recommendation}\n\n"
+        f"{inp.report.executive_summary}"
+    )
+
     async with AsyncSessionLocal() as session:
         repo = WorkflowRunRepository(session)
         run = await repo.get_by_workflow_id(inp.workflow_run_id)
@@ -295,10 +319,23 @@ async def store_and_notify_activity(inp: StoreResultInput) -> None:
             await repo.set_completed(run.id)
             await session.commit()
 
+    try:
+        async with AsyncSessionLocal() as session:
+            await save_message(session, inp.candidate_id, "assistant", message_content)
+            await session.commit()
+    except Exception:
+        logger.warning(
+            "store_and_notify: could not save assistant message for candidate %s",
+            inp.candidate_id,
+        )
+
     await _update_ai_task_status(
         inp.workflow_run_id,
         "completed",
-        {"pdfStorageKey": inp.pdf.storage_key if inp.pdf else ""},
+        {
+            "pdfStorageKey": inp.pdf.storage_key if inp.pdf else "",
+            "summary": message_content,
+        },
     )
 
     logger.info("store_and_notify: completed workflow run %s", inp.workflow_run_id)

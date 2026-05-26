@@ -255,3 +255,31 @@ class CandidateQueryRequest(BaseModel):
     model_config = {"populate_by_name": True}
     query: str
     vacancy_id: str = Field("", alias="vacancyId")
+
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str = "recruiter"
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    model_config = {"populate_by_name": True, "from_attributes": True}
+    id: str
+    email: str
+    name: str
+    role: str
+    created_at: datetime = Field(alias="createdAt")
+
+
+class TokenResponse(BaseModel):
+    model_config = {"populate_by_name": True}
+    access_token: str = Field(alias="accessToken")
+    token_type: str = Field(default="bearer", alias="tokenType")
+    user: UserResponse

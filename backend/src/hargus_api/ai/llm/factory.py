@@ -27,6 +27,7 @@ def get_llm() -> BaseChatModel:
                 model=settings.llm_model,
                 api_key=settings.openai_api_key,  # type: ignore[arg-type]
                 temperature=settings.llm_temperature,
+                base_url=settings.openai_base_url or None,
             )
         case "anthropic":
             return ChatAnthropic(
@@ -55,6 +56,7 @@ def get_embeddings() -> Embeddings:
             return OpenAIEmbeddings(
                 model=settings.embedding_model,
                 api_key=settings.openai_api_key,  # type: ignore[arg-type]
+                base_url=settings.openai_base_url or None,
             )
         case "bedrock":
             return BedrockEmbeddings(

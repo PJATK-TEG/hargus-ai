@@ -70,7 +70,7 @@ async def run_candidate_query_activity(
 ) -> CandidateQueryResult:
     activity.heartbeat()
 
-    collection_name = inp.collection_name or f"candidate_{inp.candidate_id}_analysis"
+    collection_name = inp.collection_name or f"candidate_{inp.candidate_id}"
 
     context, job_description = await _retrieve_chunks(
         collection_name, inp.query

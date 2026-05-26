@@ -32,6 +32,12 @@ async def list_reports_by_candidate(
     ]
 
 
+async def delete_report(
+    session: AsyncSession, candidate_id: str, report_id: uuid.UUID
+) -> bool:
+    return await WorkflowRunRepository(session).delete_report(candidate_id, report_id)
+
+
 async def get_report_pdf(
     session: AsyncSession, candidate_id: str, report_id: uuid.UUID
 ) -> bytes:

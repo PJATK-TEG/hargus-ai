@@ -12,13 +12,13 @@ from hargus_api.ai.tracing import traced_config
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM = """You are an expert CV parser. Extract structured candidate information from the resume/CV text.
+_SYSTEM = """You are an expert CV and interview parser. Extract structured candidate information from all provided documents.
 
 Return ONLY valid JSON matching this exact structure:
 {
-  "skills": ["technical and soft skills"],
+  "skills": ["list of individual technical skills"],
   "experience_entries": [
-    {"company": "Name", "role": "Title", "duration_months": 24, "description": "brief summary"}
+    {"company": "Name", "role": "Title", "from": "Jan 2020", "to": "Mar 2022", "duration_months": 26, "description": "brief summary"}
   ],
   "total_years_experience": 5.5,
   "education": [
@@ -28,6 +28,14 @@ Return ONLY valid JSON matching this exact structure:
   "domain_signals": ["fintech", "distributed systems"],
   "confidence": 0.9
 }
+
+Rules for the "skills" field:
+- List each skill as a single, atomic, canonical term (e.g. "Python", "Docker", "PostgreSQL")
+- Split compound forms: "Python/Django" -> ["Python", "Django"]; "Docker & Kubernetes" -> ["Docker", "Kubernetes"]
+- Omit version numbers: write "Python" not "Python 3.9"; "React" not "React 18"
+- Use industry-standard names, not prose: "Docker" not "Docker containers"; "React" not "React framework"
+- Extract skills from ALL documents provided (CV, transcripts, notes), not just the CV
+- Do NOT include generic soft skills like "communication" or "teamwork" in skills -- those belong in domain_signals
 
 Set confidence 0.0 (very uncertain) to 1.0 (very confident) based on data quality and completeness."""
 
@@ -68,7 +76,7 @@ def build_candidate_agent(
     async def extract(state: _State) -> _State:
         try:
             result = await chain.ainvoke(
-                {"documents": truncate(state["documents"], 8000)},
+                {"documents": truncate(state["documents"], 40000)},
                 config=invoke_cfg,
             )
             return {"parsed_result": result, "error": None}

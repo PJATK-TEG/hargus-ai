@@ -1,6 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from hargus_api.api.dependencies import get_current_user
 from hargus_api.config import Settings, get_settings
+from hargus_api.db.base import get_db_session
+from hargus_api.db.models import User
 from hargus_api.schemas.domain import AiTaskRecord, AiTaskRequest
 from hargus_api.services.ai_task_service import AiTaskService
 
@@ -14,6 +20,7 @@ def get_ai_task_service(settings: Settings = Depends(get_settings)) -> AiTaskSer
 @router.get("", response_model=list[AiTaskRecord])
 async def list_ai_tasks(
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
+    _: User = Depends(get_current_user),  # noqa: B008
 ) -> list[AiTaskRecord]:
     return service.list_tasks()
 
@@ -22,6 +29,7 @@ async def list_ai_tasks(
 async def submit_ai_task(
     request: AiTaskRequest,
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
+    _: User = Depends(get_current_user),  # noqa: B008
 ) -> AiTaskRecord:
     return await service.submit_task(request)
 
@@ -30,6 +38,7 @@ async def submit_ai_task(
 async def get_ai_task(
     task_id: str,
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
+    _: User = Depends(get_current_user),  # noqa: B008
 ) -> AiTaskRecord:
     task = service.get_task(task_id)
     if task is None:

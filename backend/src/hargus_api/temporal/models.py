@@ -102,6 +102,8 @@ class ExperienceEntry(BaseModel):
     role: str
     duration_months: int
     description: str
+    from_date: str = ""
+    to_date: str = ""
 
 
 class CandidateFacts(BaseModel):
@@ -164,6 +166,8 @@ class ConsolidatedFacts(BaseModel):
     matched_skills: list[str] = Field(default_factory=list)
     missing_skills: list[str] = Field(default_factory=list)
     skill_coverage: float = 0.0  # 0.0–1.0
+    preferred_matched: list[str] = Field(default_factory=list)
+    preferred_coverage: float = 0.0  # 0.0–1.0
 
 
 # ── Scoring ───────────────────────────────────────────────────────────────────
@@ -232,6 +236,7 @@ class UpdateCandidateInput(BaseModel):
     candidate_id: str
     consolidated: ConsolidatedFacts
     score: ScoringResult
+    report: ReportDraft | None = None
 
 
 # ── Final store ───────────────────────────────────────────────────────────────

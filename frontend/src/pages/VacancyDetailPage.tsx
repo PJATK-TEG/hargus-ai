@@ -210,7 +210,7 @@ export default function VacancyDetailPage() {
 
                   <div className="flex items-center gap-5 flex-shrink-0">
                     <ScoreRing score={candidate.score} size={56} strokeWidth={4} label="Score" />
-                    <ScoreRing score={candidate.relevancyScore} size={56} strokeWidth={4} label="Relevancy" />
+                    <ScoreRing score={candidate.relevancyScore} size={56} strokeWidth={4} label="Relevancy" description="How relevant the candidate is to the position based purely on skill match — not interview performance or truthfulness." />
                     <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </Link>

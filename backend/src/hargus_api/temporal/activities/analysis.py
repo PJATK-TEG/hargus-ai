@@ -135,7 +135,9 @@ def _all_text(inp: AgentActivityInput) -> str:
     return "\n\n---\n\n".join(d.raw_text for d in inp.documents)
 
 
-async def _retrieve_chunks(collection_name: str, query: str) -> str:
+async def _retrieve_chunks(
+    collection_name: str, query: str, *, doc_filter: dict | None = None
+) -> str:
     """Return top-k relevant chunks from pgvector as a formatted string.
 
     Returns empty string when the collection is empty or retrieval fails.
@@ -149,13 +151,13 @@ async def _retrieve_chunks(collection_name: str, query: str) -> str:
             connection=pgvector_engine(),
             use_jsonb=True,
         )
-        docs = await store.asimilarity_search(query, k=get_rag_k())
+        docs = await store.asimilarity_search(query, k=get_rag_k(), filter=doc_filter)
         if not docs:
             return ""
         chunks = "\n---\n".join(d.page_content for d in docs)
         return f"[Relevant excerpts from candidate documents]\n{chunks}"
     except Exception:
-        logger.debug("RAG retrieval failed for collection %s", collection_name)
+        logger.warning("RAG retrieval failed for collection %s", collection_name)
         return ""
 
 
@@ -218,12 +220,13 @@ async def run_jd_analysis_activity(inp: AgentActivityInput) -> JobRubric:
 @activity.defn
 async def run_candidate_extraction_activity(inp: AgentActivityInput) -> CandidateFacts:
     activity.heartbeat()
-    rag = await _retrieve_chunks(
+    rag_transcript = await _retrieve_chunks(
         inp.collection_name,
-        "skills experience education certifications work history",
+        "skills technologies tools frameworks used mentioned worked experience",
+        doc_filter={"source_type": "transcript"},
     )
-    base_text = _cv_text(inp) or _all_text(inp)
-    text = f"{rag}\n\n{base_text}".strip() if rag else base_text
+    cv_text = _cv_text(inp) or _all_text(inp)
+    text = f"{rag_transcript}\n\n{cv_text}".strip() if rag_transcript else cv_text
     raw = await heartbeat_while(
         run_candidate_agent(
             get_llm(),
@@ -240,6 +243,8 @@ async def run_candidate_extraction_activity(inp: AgentActivityInput) -> Candidat
             role=c.get(e, "role", ""),
             duration_months=int(c.get(e, "duration_months", 0)),
             description=c.get(e, "description", ""),
+            from_date=str(c.get(e, "from", "") or ""),
+            to_date=str(c.get(e, "to", "") or ""),
         )
         for e in c.get(raw, "experience_entries", [])
     ]
@@ -385,12 +390,19 @@ async def run_consistency_check_activity(inp: AgentActivityInput) -> RiskFlags:
 @activity.defn
 async def consolidate_facts_activity(inp: ConsolidateInput) -> ConsolidatedFacts:
     """Merge agent outputs and compute skill coverage — no LLM needed."""
-    required = set(s.lower() for s in inp.rubric.required_skills)
-    candidate_skills = set(s.lower() for s in inp.candidate_facts.skills)
+    required_map = {s.lower(): s for s in inp.rubric.required_skills}
+    required = set(required_map)
+    candidate_skills = {s.lower() for s in inp.candidate_facts.skills}
 
-    matched = sorted(required & candidate_skills)
-    missing = sorted(required - candidate_skills)
-    coverage = len(matched) / len(required) if required else 0.0
+    matched = sorted(required_map[s] for s in required & candidate_skills)
+    missing = sorted(required_map[s] for s in required - candidate_skills)
+    coverage = len(required & candidate_skills) / len(required) if required else 1.0
+
+    preferred_map = {s.lower(): s for s in inp.rubric.preferred_skills}
+    preferred = set(preferred_map)
+    preferred_matched_lower = preferred & candidate_skills
+    preferred_matched = sorted(preferred_map[s] for s in preferred_matched_lower)
+    preferred_coverage = len(preferred_matched_lower) / len(preferred) if preferred else 0.0
 
     return ConsolidatedFacts(
         workflow_run_id=inp.workflow_run_id,
@@ -403,6 +415,8 @@ async def consolidate_facts_activity(inp: ConsolidateInput) -> ConsolidatedFacts
         matched_skills=matched,
         missing_skills=missing,
         skill_coverage=round(coverage, 3),
+        preferred_matched=preferred_matched,
+        preferred_coverage=round(preferred_coverage, 3),
     )
 
 

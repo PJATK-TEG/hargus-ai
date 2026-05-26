@@ -298,8 +298,8 @@ async def test_consolidate_computes_matched_missing_skills(
     )
     result = await consolidate_facts_activity(inp)
 
-    assert "python" in result.matched_skills
-    assert "postgresql" in result.matched_skills
+    assert "Python" in result.matched_skills
+    assert "PostgreSQL" in result.matched_skills
     assert 0.0 < result.skill_coverage <= 1.0
 
 

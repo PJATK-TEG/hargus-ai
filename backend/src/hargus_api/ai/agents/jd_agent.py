@@ -24,6 +24,12 @@ Return ONLY valid JSON matching this exact structure:
   "domain_keywords": ["domain-specific terms and technologies"]
 }
 
+Rules for "required_skills" and "preferred_skills":
+- List each skill as a single, atomic, canonical term (e.g. "Python", "Docker", "PostgreSQL")
+- Split compound forms: "Python/Django" -> ["Python", "Django"]; "Docker & Kubernetes" -> ["Docker", "Kubernetes"]
+- Omit version numbers: write "Python" not "Python 3.x"; "React" not "React 16+"
+- Use industry-standard names: "Docker" not "containerization"; "React" not "React.js"
+
 Extract only what is explicitly stated or strongly implied. Do not invent details."""
 
 _HUMAN = "Job Description:\n{job_description}\n\nExtract the job rubric as JSON."

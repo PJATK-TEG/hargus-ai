@@ -8,6 +8,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    from hargus_api.ai.config import get_chunk_overlap, get_chunk_size
     from hargus_api.temporal.activities.analysis import (
         consolidate_facts_activity,
         run_candidate_extraction_activity,
@@ -97,6 +98,8 @@ class CandidateAnalysisWorkflow:
                     workflow_run_id=inp.workflow_run_id,
                     candidate_id=inp.candidate_id,
                     documents=parsed.documents,
+                    chunk_size=get_chunk_size(),
+                    chunk_overlap=get_chunk_overlap(),
                 ),
                 **_OPTS_IO,
             )
@@ -158,17 +161,6 @@ class CandidateAnalysisWorkflow:
                 score_candidate_activity, consolidated, **_OPTS_FAST
             )
 
-            # ── Phase 5.5: Persist candidate facts ───────────────────────────
-            await workflow.execute_activity(
-                update_candidate_activity,
-                UpdateCandidateInput(
-                    candidate_id=inp.candidate_id,
-                    consolidated=consolidated,
-                    score=score,
-                ),
-                **_OPTS_FAST,
-            )
-
             # ── Phase 6: Report drafting (LLM) ───────────────────────────────
             report = await workflow.execute_activity(
                 draft_report_activity,
@@ -178,6 +170,18 @@ class CandidateAnalysisWorkflow:
                     analysis_prompt=inp.analysis_prompt,
                 ),
                 **_OPTS_LLM,
+            )
+
+            # ── Phase 6.5: Persist candidate facts + summary ──────────────────
+            await workflow.execute_activity(
+                update_candidate_activity,
+                UpdateCandidateInput(
+                    candidate_id=inp.candidate_id,
+                    consolidated=consolidated,
+                    score=score,
+                    report=report,
+                ),
+                **_OPTS_FAST,
             )
 
             # ── Phase 7: PDF rendering ────────────────────────────────────────
