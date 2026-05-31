@@ -25,6 +25,8 @@ Analyse the candidate's full profile and produce a structured assessment that co
 4. Inconsistencies, employment gaps, or risk factors detected across all documents.
 5. An overall recommendation (strong_match | possible | weak | manual_review) with
    clear, evidence-based rationale.
+6. Languages spoken by the candidate. If no languages are explicitly stated in the CV
+   or transcripts, use the language the CV is written in as the fallback value.
 
 Be specific and objective. Cite the source document for every claim. Do not infer
 facts that are not present in the documents.
@@ -67,14 +69,14 @@ def get_analysis_prompt() -> str:
 def get_rag_k() -> int:
     """Number of pgvector chunks to retrieve for RAG context."""
     cfg = _load_yaml_config()
-    return int(cfg.get("analysis", {}).get("rag_k", 5))
+    return int(cfg.get("analysis", {}).get("rag_k", 12))
 
 
 def get_chunk_size() -> int:
     cfg = _load_yaml_config()
-    return int(cfg.get("analysis", {}).get("chunk_size", 512))
+    return int(cfg.get("analysis", {}).get("chunk_size", 1024))
 
 
 def get_chunk_overlap() -> int:
     cfg = _load_yaml_config()
-    return int(cfg.get("analysis", {}).get("chunk_overlap", 64))
+    return int(cfg.get("analysis", {}).get("chunk_overlap", 128))

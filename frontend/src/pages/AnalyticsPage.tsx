@@ -60,50 +60,26 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-sm font-semibold text-white mb-4">Vacancy Pipeline</h2>
-          {vacancies.length === 0 ? (
-            <p className="text-sm text-slate-500">No vacancies yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {vacancies.map((vacancy) => (
-                <div key={vacancy.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-200">{vacancy.title}</p>
-                    <p className="text-xs text-slate-500">{vacancy.department}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-white">{vacancy.candidatesCount}</p>
-                    <p className="text-xs text-slate-500">candidates</p>
-                  </div>
+      <div className="glass-card rounded-2xl p-6">
+        <h2 className="text-sm font-semibold text-white mb-4">Vacancy Pipeline</h2>
+        {vacancies.length === 0 ? (
+          <p className="text-sm text-slate-500">No vacancies yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {vacancies.map((vacancy) => (
+              <div key={vacancy.id} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-200">{vacancy.title}</p>
+                  <p className="text-xs text-slate-500">{vacancy.department}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-sm font-semibold text-white mb-4">Pipeline Summary</h2>
-          {candidates.length === 0 ? (
-            <p className="text-sm text-slate-500">No candidates yet.</p>
-          ) : (
-            <div className="space-y-3 text-sm text-slate-300">
-              {[
-                ['Screening', 'screening'],
-                ['Interview', 'interview'],
-                ['Offer', 'offer'],
-                ['Hired', 'hired'],
-                ['Rejected', 'rejected'],
-              ].map(([label, status]) => (
-                <div key={status} className="flex justify-between">
-                  <span className="text-slate-500">{label}</span>
-                  <span>{candidates.filter((c) => c.status === status).length}</span>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-white">{vacancy.candidatesCount}</p>
+                  <p className="text-xs text-slate-500">candidates</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

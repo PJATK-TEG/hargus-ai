@@ -1,0 +1,60 @@
+**Job Title:** Middle Data Analyst
+
+**Job Summary:**
+
+We are seeking a highly analytical and detail-oriented Middle Data Analyst to join our Business Intelligence team. The successful candidate will be responsible for analyzing and interpreting data to inform business decisions, as well as developing and maintaining databases, reports, and dashboards to support business operations. The Middle Data Analyst will work closely with stakeholders to understand business requirements and deliver data-driven insights to support business growth.
+
+**Key Responsibilities:**
+
+* Analyze and interpret data to identify trends, patterns, and insights that inform business decisions
+* Develop and maintain databases, reports, and dashboards to support business operations
+* Design and implement data visualizations to communicate insights to stakeholders
+* Collaborate with stakeholders to understand business requirements and deliver data-driven insights
+* Develop and maintain data quality and integrity standards
+* Implement data governance policies and procedures
+* Develop and maintain reports and dashboards to support business operations
+* Analyze and interpret large data sets to identify trends and patterns
+* Develop and maintain data models and algorithms to support business operations
+* Collaborate with IT team to ensure data integration and synchronization
+* Develop and maintain data security and access controls
+
+**Requirements:**
+
+* Bachelor's degree in Mathematics, Statistics, Computer Science, or related field
+* 2-4 years of experience in data analysis, with at least 1 year in a senior role
+* Proficiency in data analysis tools, such as Excel, SQL, Tableau, Power BI, or similar
+* Strong analytical and problem-solving skills, with the ability to analyze complex data sets and develop effective solutions
+* Excellent communication and interpersonal skills, with the ability to collaborate with stakeholders and team members
+* Ability to work independently and as part of a team
+* Strong attention to detail and ability to meet deadlines
+* Experience with data visualization tools and techniques
+* Experience with data mining and machine learning algorithms
+* Familiarity with data governance policies and procedures
+
+**Nice to Have:**
+
+* Experience with data management tools, such as Oracle, Microsoft SQL Server, or similar
+* Experience with data integration and synchronization tools, such as ETL, AWS Glue, or similar
+* Experience with data security and access controls, such as database security, authentication, and authorization
+* Experience with data modeling and database design
+* Familiarity with cloud-based data platforms, such as AWS, Google Cloud, or Microsoft Azure
+* Experience with data analytics and business intelligence tools, such as Tableau, Power BI, or QlikView
+
+**Skills:**
+
+* Data analysis tools: Excel, SQL, Tableau, Power BI, or similar
+* Data visualization tools: Tableau, Power BI, QlikView, or similar
+* Data management tools: Oracle, Microsoft SQL Server, or similar
+* Data integration and synchronization tools: ETL, AWS Glue, or similar
+* Data security and access controls: database security, authentication, and authorization
+* Data modeling and database design: data modeling, database design, and data architecture
+* Cloud-based data platforms: AWS, Google Cloud, or Microsoft Azure
+* Data analytics and business intelligence tools: Tableau, Power BI, QlikView, or similar
+
+**Benefits:**
+
+* Comprehensive benefits package, including health insurance, retirement savings, and paid time off
+* Opportunities for professional growth and development, including training and education programs
+* Collaborative and dynamic work environment with a team of experienced data analysts and business analysts
+* Flexible work arrangements, including remote work options
+

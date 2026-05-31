@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, ExternalLink, Briefcase, GraduationCap,
   Award, Globe, FileText, MessageSquare, Send, ChevronDown, ChevronUp,
-  File, Clock, User, Sparkles, BookOpen, Shield, Loader2, Play
+  File, Clock, User, Sparkles, BookOpen, Shield, Loader2, Play, Trash2,
+  Plus, AlertTriangle,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TextareaAutosize from 'react-textarea-autosize'
@@ -23,6 +24,7 @@ const fileTypeConfig: Record<FileType, { icon: typeof FileText; color: string; b
 
 export default function CandidateDetailPage() {
   const { vacancyId, candidateId } = useParams<{ vacancyId: string; candidateId: string }>()
+  const navigate = useNavigate()
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -32,7 +34,11 @@ export default function CandidateDetailPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [expandedFile, setExpandedFile] = useState<string | null>(null)
   const [reports, setReports] = useState<AnalysisReport[]>([])
+  const [filesChanged, setFilesChanged] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadType, setUploadType] = useState<'cv' | 'transcript'>('cv')
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     Promise.all([
@@ -54,13 +60,13 @@ export default function CandidateDetailPage() {
   }, [messages, thinking])
 
   const pollTask = async (taskId: string, attempts: number) => {
-    if (attempts >= 8) {
+    if (attempts >= 60) {
       setMessages((prev) => [
         ...prev,
         {
           id: `m${Date.now()}`,
           role: 'assistant' as const,
-          content: 'Your request has been queued for AI analysis. The Temporal worker will process it and results will be available shortly.',
+          content: 'The request timed out. Please try again.',
           timestamp: new Date().toISOString(),
         },
       ])
@@ -75,7 +81,7 @@ export default function CandidateDetailPage() {
           {
             id: `m${Date.now()}`,
             role: 'assistant' as const,
-            content: task.result?.message ?? task.result?.summary ?? 'Analysis complete.',
+            content: task.result?.answer ?? task.result?.message ?? task.result?.summary ?? 'Analysis complete.',
             timestamp: new Date().toISOString(),
           },
         ])
@@ -113,15 +119,17 @@ export default function CandidateDetailPage() {
 
     setThinking(true)
     try {
-      const task = await api.submitAiTask({
-        type: 'candidate_summary',
-        candidateId: candidateId!,
-        prompt,
-      })
+      const task = await api.queryCandidate(candidateId!, prompt, vacancyId)
       pollTask(task.id, 0)
     } catch {
       setThinking(false)
     }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this candidate? This cannot be undone.')) return
+    await api.deleteCandidate(candidateId!)
+    navigate(`/vacancies/${vacancyId}`)
   }
 
   const handleAnalyze = async () => {
@@ -137,12 +145,51 @@ export default function CandidateDetailPage() {
     setMessages((prev) => [...prev, systemMsg])
     setThinking(true)
     try {
-      const task = await api.analyzeCandidate(candidateId!)
+      const task = await api.analyzeCandidate(candidateId!, vacancyId)
       pollTask(task.id, 0)
     } catch {
       setThinking(false)
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length || !candidateId) return
+    setUploading(true)
+    try {
+      const uploaded = await Promise.all(
+        files.map((f) => api.uploadCandidateFile(candidateId, f, uploadType))
+      )
+      setCandidate((prev) => prev ? { ...prev, files: [...prev.files, ...uploaded] } : prev)
+      setFilesChanged(true)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleReportDelete = async (reportId: string) => {
+    if (!candidateId) return
+    try {
+      await api.deleteAnalysisReport(candidateId, reportId)
+      setReports((prev) => prev.filter((r) => r.id !== reportId))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleFileDelete = async (fileId: string) => {
+    if (!candidateId) return
+    try {
+      await api.deleteCandidateFile(candidateId, fileId)
+      setCandidate((prev) => prev ? { ...prev, files: prev.files.filter((f) => f.id !== fileId) } : prev)
+      setFilesChanged(true)
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -235,7 +282,7 @@ export default function CandidateDetailPage() {
 
           <div className="flex items-center gap-6 flex-shrink-0">
             <ScoreRing score={candidate.score} size={80} strokeWidth={5} label="Overall" />
-            <ScoreRing score={candidate.relevancyScore} size={80} strokeWidth={5} label="Relevancy" />
+            <ScoreRing score={candidate.relevancyScore} size={80} strokeWidth={5} label="Relevancy" description="How relevant the candidate is to the position based purely on skill match — not interview performance or truthfulness." />
             <button
               onClick={handleAnalyze}
               disabled={analyzing || thinking}
@@ -255,6 +302,13 @@ export default function CandidateDetailPage() {
               <span className="text-[11px] font-semibold text-aurora-violet whitespace-nowrap">
                 {analyzing ? 'Starting…' : 'Analyze'}
               </span>
+            </button>
+            <button
+              onClick={handleDelete}
+              className="p-2.5 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/40 transition-all"
+              title="Delete candidate"
+            >
+              <Trash2 className="w-5 h-5 text-red-400" />
             </button>
           </div>
         </div>
@@ -442,6 +496,61 @@ export default function CandidateDetailPage() {
             exit={{ opacity: 0, y: -8 }}
             className="space-y-3"
           >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                {candidate.files.length + reports.length} document(s)
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-lg border border-white/[0.08] overflow-hidden text-xs font-medium">
+                  <button
+                    onClick={() => setUploadType('cv')}
+                    className={cn(
+                      'px-3 py-1.5 transition-all',
+                      uploadType === 'cv'
+                        ? 'bg-aurora-purple/20 text-aurora-purple'
+                        : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.04]'
+                    )}
+                  >
+                    CV
+                  </button>
+                  <button
+                    onClick={() => setUploadType('transcript')}
+                    className={cn(
+                      'px-3 py-1.5 transition-all border-l border-white/[0.08]',
+                      uploadType === 'transcript'
+                        ? 'bg-aurora-cyan/20 text-aurora-cyan'
+                        : 'text-slate-400 hover:text-slate-300 hover:bg-white/[0.04]'
+                    )}
+                  >
+                    Transcript
+                  </button>
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-aurora-violet/30 bg-aurora-violet/10 text-aurora-violet hover:bg-aurora-violet/20 transition-all disabled:opacity-50"
+                >
+                  {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  {uploading ? 'Uploading…' : 'Add Files'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept=".pdf,.txt,.doc,.docx"
+                  onChange={handleFileUpload}
+                />
+              </div>
+            </div>
+
+            {filesChanged && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-aurora-amber/10 border border-aurora-amber/20 text-aurora-amber text-sm">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                Files changed — re-run <strong className="mx-1">Analyze</strong> for the results to reflect the updated documents.
+              </div>
+            )}
+
             {reports.map((report, i) => (
               <ReportCard
                 key={report.id}
@@ -450,6 +559,7 @@ export default function CandidateDetailPage() {
                 candidateId={candidateId!}
                 expanded={expandedFile === report.id}
                 onToggle={() => setExpandedFile(expandedFile === report.id ? null : report.id)}
+                onDelete={() => handleReportDelete(report.id)}
               />
             ))}
             {candidate.files.map((file, i) => (
@@ -459,11 +569,12 @@ export default function CandidateDetailPage() {
                 index={reports.length + i}
                 expanded={expandedFile === file.id}
                 onToggle={() => setExpandedFile(expandedFile === file.id ? null : file.id)}
+                onDelete={() => handleFileDelete(file.id)}
               />
             ))}
             {reports.length === 0 && candidate.files.length === 0 && (
               <div className="glass-card rounded-2xl p-12 text-center text-slate-500 text-sm">
-                No files yet. Run an analysis to generate a report.
+                No files yet. Upload files or run an analysis to generate a report.
               </div>
             )}
           </motion.div>
@@ -622,15 +733,35 @@ function ReportCard({
   candidateId,
   expanded,
   onToggle,
+  onDelete,
 }: {
   report: AnalysisReport
   index: number
   candidateId: string
   expanded: boolean
   onToggle: () => void
+  onDelete: () => void
 }) {
-  const pdfUrl = api.getCandidateReportPdfUrl(candidateId, report.id)
   const recColor = recommendationColor[report.recommendation] ?? 'text-slate-300'
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const [pdfError, setPdfError] = useState(false)
+
+  useEffect(() => {
+    if (!expanded || !report.hasPdf || blobUrl) return
+    let cancelled = false
+    setPdfLoading(true)
+    setPdfError(false)
+    api.downloadCandidateReportPdf(candidateId, report.id)
+      .then((blob) => { if (!cancelled) setBlobUrl(URL.createObjectURL(blob)) })
+      .catch(() => { if (!cancelled) setPdfError(true) })
+      .finally(() => { if (!cancelled) setPdfLoading(false) })
+    return () => { cancelled = true }
+  }, [expanded, report.hasPdf, report.id, candidateId, blobUrl])
+
+  useEffect(() => {
+    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) }
+  }, [blobUrl])
 
   return (
     <motion.div
@@ -639,37 +770,46 @@ function ReportCard({
       transition={{ delay: index * 0.06 }}
       className="glass-card rounded-2xl overflow-hidden"
     >
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-4 p-5 text-left hover:bg-white/[0.02] transition-all"
-      >
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-aurora-purple/10">
-          <FileText className="w-5 h-5 text-aurora-purple" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-white truncate">
-            AI Analysis Report
-          </h4>
-          <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
-            <span className={cn('capitalize font-medium', recColor)}>
-              {report.recommendation.replace(/_/g, ' ')}
-            </span>
-            <span>Score: {Math.round(report.overallScore * 100)}%</span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatDate(report.createdAt)}
-            </span>
-            {report.hasPdf && (
-              <span className="text-aurora-purple font-medium">PDF available</span>
-            )}
+      <div className="flex items-center">
+        <button
+          onClick={onToggle}
+          className="flex-1 flex items-center gap-4 p-5 text-left hover:bg-white/[0.02] transition-all"
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-aurora-purple/10">
+            <FileText className="w-5 h-5 text-aurora-purple" />
           </div>
-        </div>
-        {expanded ? (
-          <ChevronUp className="w-4 h-4 text-slate-500" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-slate-500" />
-        )}
-      </button>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-medium text-white truncate">
+              AI Analysis Report
+            </h4>
+            <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+              <span className={cn('capitalize font-medium', recColor)}>
+                {report.recommendation.replace(/_/g, ' ')}
+              </span>
+              <span>Score: {Math.round(report.overallScore)}%</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDate(report.createdAt)}
+              </span>
+              {report.hasPdf && (
+                <span className="text-aurora-purple font-medium">PDF available</span>
+              )}
+            </div>
+          </div>
+          {expanded ? (
+            <ChevronUp className="w-4 h-4 text-slate-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-500" />
+          )}
+        </button>
+        <button
+          onClick={onDelete}
+          className="p-3 mr-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all flex-shrink-0"
+          title="Delete report"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (
@@ -683,12 +823,18 @@ function ReportCard({
             <div className="px-5 pb-5">
               <div className="section-divider mb-4" />
               {report.hasPdf ? (
-                <iframe
-                  src={pdfUrl}
-                  className="w-full rounded-xl border border-white/[0.06]"
-                  style={{ height: '70vh' }}
-                  title="Analysis Report PDF"
-                />
+                pdfLoading ? (
+                  <div className="flex items-center justify-center h-24 text-sm text-slate-500">Loading PDF…</div>
+                ) : pdfError ? (
+                  <p className="text-sm text-red-400 italic">Failed to load PDF. Please try again.</p>
+                ) : blobUrl ? (
+                  <iframe
+                    src={blobUrl}
+                    className="w-full rounded-xl border border-white/[0.06]"
+                    style={{ height: '70vh' }}
+                    title="Analysis Report PDF"
+                  />
+                ) : null
               ) : (
                 <p className="text-sm text-slate-500 italic">PDF not yet available for this report.</p>
               )}
@@ -705,11 +851,13 @@ function FileCard({
   index,
   expanded,
   onToggle,
+  onDelete,
 }: {
   file: CandidateFile
   index: number
   expanded: boolean
   onToggle: () => void
+  onDelete: () => void
 }) {
   const config = fileTypeConfig[file.type]
   const Icon = config.icon
@@ -721,30 +869,39 @@ function FileCard({
       transition={{ delay: index * 0.06 }}
       className="glass-card rounded-2xl overflow-hidden"
     >
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-4 p-5 text-left hover:bg-white/[0.02] transition-all"
-      >
-        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', config.bg)}>
-          <Icon className={cn('w-5 h-5', config.color)} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-white truncate">{file.name}</h4>
-          <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
-            <span className="capitalize">{file.type}</span>
-            <span>{file.size}</span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatDate(file.uploadedAt)}
-            </span>
+      <div className="flex items-center">
+        <button
+          onClick={onToggle}
+          className="flex-1 flex items-center gap-4 p-5 text-left hover:bg-white/[0.02] transition-all"
+        >
+          <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', config.bg)}>
+            <Icon className={cn('w-5 h-5', config.color)} />
           </div>
-        </div>
-        {expanded ? (
-          <ChevronUp className="w-4 h-4 text-slate-500" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-slate-500" />
-        )}
-      </button>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-medium text-white truncate">{file.name}</h4>
+            <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+              <span className="capitalize">{file.type}</span>
+              <span>{file.size}</span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDate(file.uploadedAt)}
+              </span>
+            </div>
+          </div>
+          {expanded ? (
+            <ChevronUp className="w-4 h-4 text-slate-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-500" />
+          )}
+        </button>
+        <button
+          onClick={onDelete}
+          className="p-3 mr-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all flex-shrink-0"
+          title="Delete file"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (

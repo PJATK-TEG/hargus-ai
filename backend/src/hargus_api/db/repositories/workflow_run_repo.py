@@ -96,3 +96,11 @@ class WorkflowRunRepository:
 
     async def get_report_by_id(self, report_id: uuid.UUID) -> AnalysisReport | None:
         return await self._session.get(AnalysisReport, report_id)
+
+    async def delete_report(self, candidate_id: str, report_id: uuid.UUID) -> bool:
+        report = await self._session.get(AnalysisReport, report_id)
+        if report is None or report.candidate_id != candidate_id:
+            return False
+        await self._session.delete(report)
+        await self._session.flush()
+        return True

@@ -10,6 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from pgvector import sqlalchemy as pgv_sqlalchemy
 
 # revision identifiers, used by Alembic.
 revision: str = '0384569732a1'
@@ -33,7 +34,8 @@ def upgrade() -> None:
     sa.Column('created_at', sa.String(length=64), nullable=False),
     sa.Column('candidates_count', sa.Integer(), nullable=False),
     sa.Column('hires_target', sa.Integer(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    if_not_exists=True
     )
     op.create_table('candidates',
     sa.Column('id', sa.String(length=64), nullable=False),
@@ -52,7 +54,8 @@ def upgrade() -> None:
     sa.Column('applied_at', sa.String(length=64), nullable=False),
     sa.Column('linkedin_url', sa.String(length=256), nullable=True),
     sa.ForeignKeyConstraint(['vacancy_id'], ['vacancies.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    if_not_exists=True
     )
     op.create_table('candidate_files',
     sa.Column('id', sa.String(length=64), nullable=False),
@@ -63,7 +66,8 @@ def upgrade() -> None:
     sa.Column('uploaded_at', sa.String(length=64), nullable=False),
     sa.Column('size', sa.String(length=32), nullable=False),
     sa.ForeignKeyConstraint(['candidate_id'], ['candidates.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    if_not_exists=True
     )
     op.create_table('messages',
     sa.Column('id', sa.String(length=64), nullable=False),
@@ -72,7 +76,8 @@ def upgrade() -> None:
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('timestamp', sa.String(length=64), nullable=False),
     sa.ForeignKeyConstraint(['candidate_id'], ['candidates.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    if_not_exists=True
     )
     # ### end Alembic commands ###
 
@@ -83,7 +88,7 @@ def downgrade() -> None:
     op.create_table('langchain_pg_embedding',
     sa.Column('id', sa.VARCHAR(), autoincrement=False, nullable=False),
     sa.Column('collection_id', sa.UUID(), autoincrement=False, nullable=True),
-    sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(), autoincrement=False, nullable=True),
+    sa.Column('embedding', pgv_sqlalchemy.VECTOR(), autoincrement=False, nullable=True),
     sa.Column('document', sa.VARCHAR(), autoincrement=False, nullable=True),
     sa.Column('cmetadata', postgresql.JSONB(astext_type=sa.Text()), autoincrement=False, nullable=True),
     sa.ForeignKeyConstraint(['collection_id'], ['langchain_pg_collection.uuid'], name=op.f('langchain_pg_embedding_collection_id_fkey'), ondelete='CASCADE'),

@@ -1,6 +1,7 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Briefcase, Users, BarChart3, Settings, Sparkles, Search, Bell } from 'lucide-react'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Briefcase, Users, BarChart3, Settings, Sparkles, Search, Bell, LogOut } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { useAuth } from '../lib/auth'
 
 const navItems = [
   { to: '/vacancies', icon: Briefcase, label: 'Vacancies' },
@@ -11,6 +12,19 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
+  const initials = user?.name
+    .split(' ')
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('') ?? '?'
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -47,13 +61,20 @@ export default function Layout() {
         {/* Bottom section */}
         <div className="px-4 py-4 border-t border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-aurora-cyan to-aurora-teal flex items-center justify-center text-xs font-bold text-white">
-              MM
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-aurora-cyan to-aurora-teal flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-200 truncate">Mykyta M.</p>
-              <p className="text-[11px] text-slate-500">Admin</p>
+              <p className="text-sm font-medium text-slate-200 truncate">{user?.name ?? '—'}</p>
+              <p className="text-[11px] text-slate-500 capitalize">{user?.role ?? ''}</p>
             </div>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>

@@ -34,10 +34,11 @@ def upgrade() -> None:
     sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(dim=768), nullable=True),
     sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    if_not_exists=True
     )
-    op.create_index(op.f('ix_document_chunks_candidate_id'), 'document_chunks', ['candidate_id'], unique=False)
-    op.create_index(op.f('ix_document_chunks_workflow_run_id'), 'document_chunks', ['workflow_run_id'], unique=False)
+    op.create_index(op.f('ix_document_chunks_candidate_id'), 'document_chunks', ['candidate_id'], unique=False, if_not_exists=True)
+    op.create_index(op.f('ix_document_chunks_workflow_run_id'), 'document_chunks', ['workflow_run_id'], unique=False, if_not_exists=True)
     op.create_table('workflow_runs',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('candidate_id', sa.String(length=64), nullable=False),
@@ -49,10 +50,11 @@ def upgrade() -> None:
     sa.Column('started_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('temporal_workflow_id')
+    sa.UniqueConstraint('temporal_workflow_id'),
+    if_not_exists=True
     )
-    op.create_index(op.f('ix_workflow_runs_candidate_id'), 'workflow_runs', ['candidate_id'], unique=False)
-    op.create_index(op.f('ix_workflow_runs_vacancy_id'), 'workflow_runs', ['vacancy_id'], unique=False)
+    op.create_index(op.f('ix_workflow_runs_candidate_id'), 'workflow_runs', ['candidate_id'], unique=False, if_not_exists=True)
+    op.create_index(op.f('ix_workflow_runs_vacancy_id'), 'workflow_runs', ['vacancy_id'], unique=False, if_not_exists=True)
     op.create_table('analysis_reports',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('workflow_run_id', sa.UUID(), nullable=False),
@@ -67,10 +69,11 @@ def upgrade() -> None:
     sa.Column('pdf_storage_key', sa.String(length=512), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['workflow_run_id'], ['workflow_runs.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    if_not_exists=True
     )
-    op.create_index(op.f('ix_analysis_reports_candidate_id'), 'analysis_reports', ['candidate_id'], unique=False)
-    op.create_index(op.f('ix_analysis_reports_vacancy_id'), 'analysis_reports', ['vacancy_id'], unique=False)
+    op.create_index(op.f('ix_analysis_reports_candidate_id'), 'analysis_reports', ['candidate_id'], unique=False, if_not_exists=True)
+    op.create_index(op.f('ix_analysis_reports_vacancy_id'), 'analysis_reports', ['vacancy_id'], unique=False, if_not_exists=True)
     # ### end Alembic commands ###
 
 

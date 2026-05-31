@@ -100,6 +100,12 @@ async def load_documents_activity(inp: LoadDocumentsInput) -> LoadDocumentsOutpu
                     size_bytes=None,
                 )
             )
+            logger.info(
+                "load_documents: candidate=%s found file %s (type=%s)",
+                inp.candidate_id,
+                key,
+                source_type,
+            )
     except Exception:
         logger.debug("Storage listing failed for candidate %s — using structured data", inp.candidate_id)
 

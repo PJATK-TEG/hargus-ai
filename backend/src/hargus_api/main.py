@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 
 from hargus_api.api.routes.ai_tasks import router as ai_tasks_router
+from hargus_api.api.routes.auth import router as auth_router
 from hargus_api.api.routes.background import router as background_router
 from hargus_api.api.routes.candidates import router as candidates_router
 from hargus_api.api.routes.health import router as health_router
@@ -52,6 +53,7 @@ async def request_context_middleware(request: Request, call_next) -> Response:
     return response
 
 app.include_router(health_router, prefix=settings.api_prefix)
+app.include_router(auth_router, prefix=settings.api_prefix)
 app.include_router(vacancies_router, prefix=settings.api_prefix)
 app.include_router(candidates_router, prefix=settings.api_prefix)
 app.include_router(ai_tasks_router, prefix=settings.api_prefix)

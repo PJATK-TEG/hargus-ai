@@ -8,12 +8,14 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    from hargus_api.ai.config import get_chunk_overlap, get_chunk_size
     from hargus_api.temporal.activities.analysis import (
         consolidate_facts_activity,
         run_candidate_extraction_activity,
         run_consistency_check_activity,
         run_interview_insight_activity,
         run_jd_analysis_activity,
+        run_profile_extraction_activity,
     )
     from hargus_api.temporal.activities.embedding import chunk_and_embed_activity
     from hargus_api.temporal.activities.ingestion import (
@@ -25,6 +27,8 @@ with workflow.unsafe.imports_passed_through():
         mark_task_failed_activity,
         render_pdf_activity,
         store_and_notify_activity,
+        update_candidate_activity,
+        update_candidate_profile_activity,
     )
     from hargus_api.temporal.activities.scoring import score_candidate_activity
     from hargus_api.temporal.models import (
@@ -33,10 +37,12 @@ with workflow.unsafe.imports_passed_through():
         ChunkEmbedInput,
         ConsolidateInput,
         LoadDocumentsInput,
+        MarkTaskFailedInput,
         ParseDocumentsInput,
         ReportDraftInput,
         StoreResultInput,
-        MarkTaskFailedInput,
+        UpdateCandidateInput,
+        UpdateCandidateProfileInput,
     )
 
 # Retry policies
@@ -92,6 +98,8 @@ class CandidateAnalysisWorkflow:
                     workflow_run_id=inp.workflow_run_id,
                     candidate_id=inp.candidate_id,
                     documents=parsed.documents,
+                    chunk_size=get_chunk_size(),
+                    chunk_overlap=get_chunk_overlap(),
                 ),
                 **_OPTS_IO,
             )
@@ -105,7 +113,7 @@ class CandidateAnalysisWorkflow:
             )
 
             # ── Phase 3: Parallel agent analysis ─────────────────────────────
-            rubric, candidate_facts, interview_findings, risk_flags = await asyncio.gather(
+            rubric, candidate_facts, interview_findings, risk_flags, profile = await asyncio.gather(
                 workflow.execute_activity(
                     run_jd_analysis_activity, agent_input, **_OPTS_LLM
                 ),
@@ -118,6 +126,19 @@ class CandidateAnalysisWorkflow:
                 workflow.execute_activity(
                     run_consistency_check_activity, agent_input, **_OPTS_LLM
                 ),
+                workflow.execute_activity(
+                    run_profile_extraction_activity, agent_input, **_OPTS_LLM
+                ),
+            )
+
+            # ── Phase 3.5: Back-fill candidate profile from CV ────────────────
+            await workflow.execute_activity(
+                update_candidate_profile_activity,
+                UpdateCandidateProfileInput(
+                    candidate_id=inp.candidate_id,
+                    profile=profile,
+                ),
+                **_OPTS_FAST,
             )
 
             # ── Phase 4: Consolidation (deterministic) ────────────────────────
@@ -149,6 +170,18 @@ class CandidateAnalysisWorkflow:
                     analysis_prompt=inp.analysis_prompt,
                 ),
                 **_OPTS_LLM,
+            )
+
+            # ── Phase 6.5: Persist candidate facts + summary ──────────────────
+            await workflow.execute_activity(
+                update_candidate_activity,
+                UpdateCandidateInput(
+                    candidate_id=inp.candidate_id,
+                    consolidated=consolidated,
+                    score=score,
+                    report=report,
+                ),
+                **_OPTS_FAST,
             )
 
             # ── Phase 7: PDF rendering ────────────────────────────────────────

@@ -1,17 +1,27 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Briefcase, MapPin, Clock, Users, ChevronRight, Target, Loader2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Plus, Briefcase, MapPin, Clock, Users, ChevronRight, Target, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { formatDate, getStatusColor, cn } from '../lib/utils'
 import { api } from '../lib/api'
 import CreateVacancyModal from '../components/CreateVacancyModal'
+import EditVacancyModal from '../components/EditVacancyModal'
 import type { Vacancy } from '../types'
 
 export default function VacanciesPage() {
+  const navigate = useNavigate()
   const [vacancies, setVacancies] = useState<Vacancy[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [editingVacancy, setEditingVacancy] = useState<Vacancy | null>(null)
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    if (!window.confirm('Delete this vacancy? This cannot be undone.')) return
+    await api.deleteVacancy(id)
+    setVacancies((prev) => prev.filter((v) => v.id !== id))
+  }
 
   useEffect(() => {
     api.listVacancies()
@@ -102,9 +112,9 @@ export default function VacanciesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
             >
-              <Link
-                to={`/vacancies/${vacancy.id}`}
-                className="glass-card glass-card-hover rounded-2xl p-5 flex items-center gap-6 group block"
+              <div
+                className="glass-card glass-card-hover rounded-2xl p-5 flex items-center gap-6 group cursor-pointer"
+                onClick={() => navigate(`/vacancies/${vacancy.id}`)}
               >
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-aurora-purple/20 to-aurora-indigo/10 border border-aurora-purple/20 flex items-center justify-center flex-shrink-0">
                   <Briefcase className="w-5 h-5 text-aurora-violet" />
@@ -145,9 +155,25 @@ export default function VacanciesPage() {
                   <div className="text-right">
                     <p className="text-xs text-slate-500">{formatDate(vacancy.createdAt)}</p>
                   </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingVacancy(vacancy) }}
+                      className="p-2 rounded-lg text-slate-400 hover:text-aurora-violet hover:bg-aurora-purple/10 transition-all"
+                      title="Edit vacancy"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, vacancy.id)}
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="Delete vacancy"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </Link>
+              </div>
             </motion.div>
           )
         })}
@@ -158,6 +184,18 @@ export default function VacanciesPage() {
         onClose={() => setModalOpen(false)}
         onCreate={(v) => setVacancies([v, ...vacancies])}
       />
+
+      {editingVacancy && (
+        <EditVacancyModal
+          open={!!editingVacancy}
+          vacancy={editingVacancy}
+          onClose={() => setEditingVacancy(null)}
+          onUpdate={(updated) => {
+            setVacancies((prev) => prev.map((v) => (v.id === updated.id ? updated : v)))
+            setEditingVacancy(null)
+          }}
+        />
+      )}
     </div>
   )
 }

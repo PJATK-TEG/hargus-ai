@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 
+from hargus_api.api.dependencies import get_current_user
 from hargus_api.config import Settings, get_settings
+from hargus_api.db.models import User
 from hargus_api.schemas.domain import (
     AiTaskRecord,
     AiTaskRequest,
@@ -65,13 +67,16 @@ def get_ai_task_service(settings: Settings = Depends(get_settings)) -> AiTaskSer
 
 
 @router.get("/sources", response_model=BackgroundSourceListResponse)
-async def list_background_sources() -> BackgroundSourceListResponse:
+async def list_background_sources(
+    _: User = Depends(get_current_user),  # noqa: B008
+) -> BackgroundSourceListResponse:
     return BackgroundSourceListResponse(items=_SOURCE_CATALOG)
 
 
 @router.get("/checks", response_model=list[AiTaskRecord])
 async def list_background_checks(
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
+    _: User = Depends(get_current_user),  # noqa: B008
 ) -> list[AiTaskRecord]:
     return [
         task for task in service.list_tasks() if task.type == "candidate_background_check"
@@ -82,6 +87,7 @@ async def list_background_checks(
 async def submit_background_check(
     request: BackgroundCheckRequest,
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
+    _: User = Depends(get_current_user),  # noqa: B008
 ) -> AiTaskRecord:
     sources = ", ".join(request.sources) if request.sources else "auto"
     prompt = request.prompt or f"Run background check using sources: {sources}"
@@ -99,6 +105,7 @@ async def submit_background_check(
 async def get_background_check(
     task_id: str,
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
+    _: User = Depends(get_current_user),  # noqa: B008
 ) -> AiTaskRecord:
     task = service.get_task(task_id)
     if task is None or task.type != "candidate_background_check":
@@ -111,6 +118,7 @@ async def search_background_source(
     source: BackgroundSource,
     request: BackgroundSourceSearchRequest,
     service: AiTaskService = Depends(get_ai_task_service),  # noqa: B008
+    _: User = Depends(get_current_user),  # noqa: B008
 ) -> AiTaskRecord:
     ai_task_request = AiTaskRequest(
         type="candidate_background_check",

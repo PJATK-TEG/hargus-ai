@@ -99,3 +99,17 @@ export interface Message {
   content: string
   timestamp: string
 }
+
+export interface User {
+  id: string
+  email: string
+  name: string
+  role: string
+  createdAt: string
+}
+
+export interface TokenResponse {
+  accessToken: string
+  tokenType: string
+  user: User
+}

@@ -7,6 +7,7 @@ from functools import lru_cache
 from langchain_core.documents import Document
 from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from temporalio import activity
 
@@ -16,9 +17,26 @@ from hargus_api.temporal.models import ChunkEmbedInput, ChunkEmbedOutput
 
 logger = logging.getLogger(__name__)
 
+_TRANSCRIPT_SEP = "\n" + "-" * 60 + "\n"
+
+
+async def _clear_collection_embeddings(collection_name: str) -> None:
+    """Delete all embeddings for the named collection so re-embedding is idempotent."""
+    engine = pgvector_engine()
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "DELETE FROM langchain_pg_embedding "
+                "WHERE collection_id = ("
+                "  SELECT uuid FROM langchain_pg_collection WHERE name = :name"
+                ")"
+            ),
+            {"name": collection_name},
+        )
+
 
 @lru_cache(maxsize=1)
-def _pgvector_engine() -> AsyncEngine:
+def pgvector_engine() -> AsyncEngine:
     """Return a psycopg3 async engine for PGVector.
 
     langchain_postgres sends multi-statement SQL (advisory lock + CREATE EXTENSION)
@@ -36,6 +54,7 @@ async def chunk_and_embed_activity(inp: ChunkEmbedInput) -> ChunkEmbedOutput:
     activity.heartbeat()
 
     splitter = RecursiveCharacterTextSplitter(
+        separators=[_TRANSCRIPT_SEP],
         chunk_size=inp.chunk_size,
         chunk_overlap=inp.chunk_overlap,
     )
@@ -57,16 +76,18 @@ async def chunk_and_embed_activity(inp: ChunkEmbedInput) -> ChunkEmbedOutput:
             )
         activity.heartbeat()
 
-    collection_name = f"candidate_{inp.candidate_id}_{inp.workflow_run_id[:8]}"
+    collection_name = f"candidate_{inp.candidate_id}"
 
     if lc_docs:
+        await _clear_collection_embeddings(collection_name)
         store = PGVector(
             embeddings=get_embeddings(),
             collection_name=collection_name,
-            connection=_pgvector_engine(),
+            connection=pgvector_engine(),
             use_jsonb=True,
         )
         await store.aadd_documents(lc_docs)
+        activity.heartbeat()
         logger.info(
             "chunk_and_embed: run=%s collection=%s chunks=%d",
             inp.workflow_run_id,

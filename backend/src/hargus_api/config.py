@@ -44,6 +44,11 @@ class Settings(BaseSettings):
             raise ValueError("temporal_server_url port must be between 1 and 65535")
         return value
 
+    # Auth
+    jwt_secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24  # 24 hours
+
     # Storage
     storage_backend: Literal["local", "s3"] = "local"
     local_storage_path: str = "./data/files"
@@ -68,6 +73,7 @@ class Settings(BaseSettings):
 
     # OpenAI
     openai_api_key: str = ""
+    openai_base_url: str = ""  # override for OpenAI-compatible endpoints (e.g. OpenRouter)
 
     # Anthropic
     anthropic_api_key: str = ""

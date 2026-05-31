@@ -13,20 +13,6 @@ def normalize_postgres_url(database_url: str) -> str:
     return database_url.replace("+asyncpg", "").replace("+psycopg2", "")
 
 
-class InMemoryAiTaskRepository:
-    def __init__(self) -> None:
-        self._tasks: dict[str, AiTaskRecord] = {}
-
-    def list_tasks(self) -> list[AiTaskRecord]:
-        return list(self._tasks.values())
-
-    def get_task(self, task_id: str) -> AiTaskRecord | None:
-        return self._tasks.get(task_id)
-
-    def save_task(self, task: AiTaskRecord) -> None:
-        self._tasks[task.id] = task
-
-
 class PostgresAiTaskRepository:
     def __init__(self, database_url: str) -> None:
         self._database_url = database_url

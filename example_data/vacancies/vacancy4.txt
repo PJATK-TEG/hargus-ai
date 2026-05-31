@@ -1,0 +1,59 @@
+**Job Title:** Intern Machine Learning Engineer
+
+**Job Summary:**
+
+We are seeking a highly motivated and talented Intern Machine Learning Engineer to join our Data Science team. The successful candidate will work on various machine learning projects and contribute to the development of our organization's AI and ML capabilities. The Intern Machine Learning Engineer will work closely with our data scientists and engineers to design, develop, and deploy machine learning models and algorithms.
+
+**Key Responsibilities:**
+
+* Assist in designing, developing, and deploying machine learning models and algorithms using popular machine learning frameworks such as TensorFlow, PyTorch, or Scikit-Learn
+* Work on various machine learning projects, including but not limited to:
+ + Image classification and object detection
+ + Natural Language Processing (NLP)
+ + Predictive modeling and regression
+ + Recommendation systems
+* Collaborate with data scientists and engineers to collect, preprocess, and analyze data for machine learning projects
+* Implement and evaluate machine learning models using metrics such as accuracy, precision, recall, and F1 score
+* Develop and maintain documentation of machine learning models and algorithms
+* Participate in machine learning competitions and hackathons to stay up-to-date with the latest developments in the field
+* Assist in the development of data pipelines and data processing tools using Apache Spark, Hadoop, or other big data technologies
+* Contribute to the development of our organization's AI and ML capabilities by working on various projects and initiatives
+
+**Requirements:**
+
+* Currently pursuing a Bachelor's or Master's degree in Computer Science, Mathematics, Statistics, or related field
+* Basic knowledge of machine learning concepts, including supervised and unsupervised learning, regression, classification, clustering, and neural networks
+* Experience with popular machine learning frameworks such as TensorFlow, PyTorch, or Scikit-Learn
+* Familiarity with Python programming language and data structures
+* Experience with data preprocessing and feature engineering
+* Basic knowledge of data visualization tools such as Matplotlib, Seaborn, or Plotly
+* Strong analytical and problem-solving skills, with the ability to analyze complex data sets and develop effective solutions
+* Excellent communication and interpersonal skills, with the ability to collaborate with stakeholders and team members
+* Ability to work independently and as part of a team
+* Strong attention to detail and ability to meet deadlines
+
+**Nice to Have:**
+
+* Experience with deep learning frameworks such as Keras, TensorFlow, or PyTorch
+* Experience with NLP techniques and tools such as NLTK, spaCy, or Stanford CoreNLP
+* Experience with computer vision techniques and tools such as OpenCV
+* Experience with data science tools such as pandas, NumPy, or SciPy
+* Familiarity with cloud-based machine learning platforms such as AWS SageMaker, Google Cloud AI Platform, or Azure Machine Learning
+* Experience with version control systems such as Git
+
+**Skills:**
+
+* Programming languages: Python, R, Java
+* Machine learning frameworks: TensorFlow, PyTorch, Scikit-Learn
+* Data science tools: pandas, NumPy, SciPy
+* Data visualization tools: Matplotlib, Seaborn, Plotly
+* Operating Systems: Windows, Linux, macOS
+* Cloud-based machine learning platforms: AWS SageMaker, Google Cloud AI Platform, Azure Machine Learning
+
+**Benefits:**
+
+* Comprehensive benefits package, including health insurance, retirement savings, and paid time off
+* Opportunities for professional growth and development, including training and education programs
+* Collaborative and dynamic work environment with a team of experienced data scientists and engineers
+* Flexible work arrangements, including remote work options
+
