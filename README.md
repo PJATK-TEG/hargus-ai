@@ -7,11 +7,12 @@ An AI-powered recruiting platform that ingests candidate CVs, interview transcri
 ## What It Does
 
 - **Vacancies & Candidates** — manage open roles and candidate profiles via a REST API
-- **Document Ingestion** — parse PDFs and text files, chunk and embed with Ollama into pgvector
-- **Multi-Agent Analysis** — 4 parallel LangGraph agents: JD analysis, candidate extraction, interview insights, consistency check
-- **Scoring** — weighted score: skill 40% + experience 35% + interview 25% − risk penalty
+- **Document Ingestion** — parse PDFs and text files, chunk and embed into pgvector
+- **Multi-Agent Analysis** — 7 LangGraph agents run in parallel and sequence: JD analysis, candidate extraction, interview insights, consistency check, profile extraction, report drafting, candidate query
+- **Scoring** — deterministic weighted score: skill 40% + experience 35% + interview 25% − risk penalty
 - **PDF Reports** — WeasyPrint + Jinja2 rendered report, stored locally or in S3/MinIO
-- **Frontend Dashboard** — React + TypeScript UI; runs in **Demo mode** (static mocks) or **Live mode** (real API)
+- **Observability** — Langfuse traces all LLM calls and records custom scoring metrics per workflow run
+- **Frontend Dashboard** — React + TypeScript UI with live API mode or static demo mode (set `VITE_MODE=DEMO`)
 
 ## Tech Stack
 
@@ -20,8 +21,9 @@ An AI-powered recruiting platform that ingests candidate CVs, interview transcri
 | Frontend | React + Vite + TypeScript + Tailwind |
 | Backend API | FastAPI (Python) |
 | Workflow orchestration | Temporal |
-| Agent framework | LangGraph |
-| LLM runtime | Ollama (local, no external API key needed) |
+| Agent framework | LangGraph + LangChain |
+| LLM | Any OpenAI-compatible API (OpenRouter by default; Ollama for fully local) |
+| Embeddings | Ollama (`nomic-embed-text`) |
 | Vector search | pgvector (Postgres extension) |
 | Object storage | MinIO (local) or S3 |
 | PDF rendering | WeasyPrint + Jinja2 |
@@ -39,30 +41,40 @@ See [`docs/local-dev-guide.md`](./docs/local-dev-guide.md) for the full setup wa
 
 - Docker Desktop
 - Python 3.11+
-- [`uv`](https://docs.astral.sh/uv/getting-started/installation/)
-- [`task`](https://taskfile.dev/installation/) (`winget install Task.Task` on Windows)
+- [`uv`](https://docs.astral.sh/uv/) (`pip install uv`)
+- [`task`](https://taskfile.dev/installation/)
 - Node.js 18+
+- An OpenAI-compatible API key (e.g. [OpenRouter](https://openrouter.ai)) — or Ollama running locally
 
 ### Quick Start
 
 ```bash
-# 1. Start infrastructure (Postgres, Temporal, MinIO, Ollama, Langfuse)
+# 1. Copy env file and fill in your API key
+cp .env.example .env
+# Edit .env — set HARGUS_OPENAI_API_KEY and optionally HARGUS_LLM_MODEL
+
+# 2. Start infrastructure (Postgres, Temporal, MinIO, Langfuse)
 task docker:up
 
-# 2. Install backend dependencies and run migrations
+# 3. Install backend dependencies and run migrations
 task backend:install
 task backend:migrate
 
-# 3. Start API and worker
+# 4. Start API and worker (two separate terminals)
 task backend:dev      # http://localhost:8000
 task backend:worker
 
-# 4. Start frontend
+# 5. Start frontend
 task frontend:dev     # http://localhost:3000
 ```
 
-The frontend runs in **Demo mode** by default (set `VITE_MODE=DEMO` in `frontend/.env`).  
-To connect it to the live backend, leave `VITE_MODE` unset and set `VITE_API_URL=http://localhost:8000/api/v1`.
+For embeddings, Ollama must be running locally with `nomic-embed-text` pulled:
+```bash
+task ollama:start     # in a separate terminal
+ollama pull nomic-embed-text
+```
+
+To use fully local LLMs instead of OpenRouter, set `HARGUS_LLM_PROVIDER=ollama` and `HARGUS_LLM_MODEL=<model>` in `backend/.env`.
 
 ## Project Structure
 
@@ -71,12 +83,13 @@ hargus-ai/
 ├── frontend/          # React + Vite dashboard
 ├── backend/           # FastAPI + Temporal worker
 │   └── src/hargus_api/
-│       ├── ai/        # LangGraph agents
+│       ├── ai/        # LangGraph agents + tracing
 │       ├── db/        # SQLAlchemy models + Alembic migrations
 │       ├── storage/   # Local / S3 abstraction
 │       ├── pdf/       # Report renderer
 │       └── temporal/  # Workflows and activities
 ├── docs/              # Architecture docs and guides
+├── .env.example       # Environment variable template
 ├── Taskfile.yml       # Dev task runner
 └── docker-compose.yml # Full local stack
 ```
