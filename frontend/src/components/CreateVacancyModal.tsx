@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { X, Plus, Trash2 } from 'lucide-react'
+import { X, Plus, Trash2, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { api } from '../lib/api'
 import type { Vacancy } from '../types'
 
 interface CreateVacancyModalProps {
@@ -16,6 +17,8 @@ export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVa
   const [type, setType] = useState<Vacancy['type']>('full-time')
   const [description, setDescription] = useState('')
   const [requirements, setRequirements] = useState<string[]>([''])
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const addRequirement = () => setRequirements([...requirements, ''])
   const removeRequirement = (i: number) => setRequirements(requirements.filter((_, idx) => idx !== i))
@@ -25,23 +28,27 @@ export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVa
     setRequirements(next)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const vacancy: Vacancy = {
-      id: `v${Date.now()}`,
-      title,
-      department,
-      location,
-      type,
-      status: 'active',
-      description,
-      requirements: requirements.filter(Boolean),
-      createdAt: new Date().toISOString().split('T')[0]!,
-      candidatesCount: 0,
-      hiresTarget: 1,
+    setSubmitting(true)
+    setError(null)
+    try {
+      const vacancy = await api.createVacancy({
+        title,
+        department,
+        location,
+        type,
+        description,
+        requirements: requirements.filter(Boolean),
+        hiresTarget: 1,
+      })
+      onCreate(vacancy)
+      onClose()
+    } catch {
+      setError('Failed to create vacancy. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
-    onCreate(vacancy)
-    onClose()
   }
 
   return (
@@ -161,12 +168,16 @@ export default function CreateVacancyModal({ open, onClose, onCreate }: CreateVa
                   </button>
                 </div>
 
+                {error && (
+                  <p className="text-sm text-red-400">{error}</p>
+                )}
+
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-2">
-                  <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
-                  <button type="submit" className="btn-primary">
-                    <Plus className="w-4 h-4" />
-                    Create Vacancy
+                  <button type="button" onClick={onClose} disabled={submitting} className="btn-ghost">Cancel</button>
+                  <button type="submit" disabled={submitting} className="btn-primary">
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    {submitting ? 'Creating…' : 'Create Vacancy'}
                   </button>
                 </div>
               </form>

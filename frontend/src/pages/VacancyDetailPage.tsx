@@ -1,14 +1,49 @@
-import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, Users, ChevronRight, ExternalLink } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, MapPin, Clock, Plus, Users, ChevronRight, ExternalLink, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { mockVacancies, mockCandidates } from '../data/mock'
 import { formatDate, getStatusColor, getTagColors, cn } from '../lib/utils'
+import { api } from '../lib/api'
 import ScoreRing from '../components/ScoreRing'
+import AddCandidateModal from '../components/AddCandidateModal'
+import EditVacancyModal from '../components/EditVacancyModal'
+import type { Vacancy, Candidate } from '../types'
 
 export default function VacancyDetailPage() {
   const { vacancyId } = useParams<{ vacancyId: string }>()
-  const vacancy = mockVacancies.find((v) => v.id === vacancyId)
-  const candidates = mockCandidates.filter((c) => c.vacancyId === vacancyId)
+  const navigate = useNavigate()
+  const [vacancy, setVacancy] = useState<Vacancy | null>(null)
+  const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this vacancy? This cannot be undone.')) return
+    await api.deleteVacancy(vacancyId!)
+    navigate('/vacancies')
+  }
+
+  useEffect(() => {
+    Promise.all([
+      api.getVacancy(vacancyId!),
+      api.listVacancyCandidates(vacancyId!),
+    ])
+      .then(([v, cs]) => {
+        setVacancy(v)
+        setCandidates(cs)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [vacancyId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 text-aurora-purple animate-spin" />
+      </div>
+    )
+  }
 
   if (!vacancy) {
     return (
@@ -50,7 +85,22 @@ export default function VacancyDetailPage() {
               <span className="text-slate-500">Created {formatDate(vacancy.createdAt)}</span>
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="btn-ghost flex items-center gap-2"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="btn-ghost flex items-center gap-2 text-red-400 hover:text-red-300 hover:border-red-500/30"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+            <div className="h-8 w-px bg-white/10" />
             <div className="text-center">
               <p className="text-2xl font-bold text-white">{candidates.length}</p>
               <p className="text-xs text-slate-500">candidates</p>
@@ -80,7 +130,28 @@ export default function VacancyDetailPage() {
           Candidates
           <span className="text-sm font-normal text-slate-500">({candidates.length})</span>
         </h2>
+        <button onClick={() => setShowAddModal(true)} className="btn-primary">
+          <Plus className="w-4 h-4" />
+          Add Candidate
+        </button>
       </div>
+
+      <AddCandidateModal
+        open={showAddModal}
+        vacancies={vacancy ? [vacancy] : []}
+        defaultVacancyId={vacancyId}
+        onClose={() => setShowAddModal(false)}
+        onCreated={(c) => setCandidates((prev) => [...prev, c])}
+      />
+
+      {vacancy && (
+        <EditVacancyModal
+          open={showEditModal}
+          vacancy={vacancy}
+          onClose={() => setShowEditModal(false)}
+          onUpdate={(updated) => setVacancy(updated)}
+        />
+      )}
 
       {candidates.length === 0 ? (
         <div className="glass-card rounded-2xl p-12 text-center">
@@ -102,7 +173,6 @@ export default function VacancyDetailPage() {
                   to={`/vacancies/${vacancyId}/candidates/${candidate.id}`}
                   className="glass-card glass-card-hover rounded-2xl p-5 flex items-center gap-5 group block"
                 >
-                  {/* Avatar */}
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
                     style={{ backgroundColor: candidate.avatarColor + '30', color: candidate.avatarColor }}
@@ -110,7 +180,6 @@ export default function VacancyDetailPage() {
                     {candidate.avatarInitials}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="text-[15px] font-semibold text-white group-hover:text-aurora-violet transition-colors">
@@ -139,10 +208,9 @@ export default function VacancyDetailPage() {
                     </div>
                   </div>
 
-                  {/* Score */}
                   <div className="flex items-center gap-5 flex-shrink-0">
                     <ScoreRing score={candidate.score} size={56} strokeWidth={4} label="Score" />
-                    <ScoreRing score={candidate.relevancyScore} size={56} strokeWidth={4} label="Relevancy" />
+                    <ScoreRing score={candidate.relevancyScore} size={56} strokeWidth={4} label="Relevancy" description="How relevant the candidate is to the position based purely on skill match — not interview performance or truthfulness." />
                     <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </Link>

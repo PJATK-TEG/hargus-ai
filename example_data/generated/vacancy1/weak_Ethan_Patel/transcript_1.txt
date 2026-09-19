@@ -1,0 +1,104 @@
+INTERVIEW TRANSCRIPT
+============================================================
+Candidate:      Ethan Patel
+Position:       Senior Cybersecurity Specialist
+Interviewer:    Rachel Lee
+Date:           2026-05-18
+Interview Type: TECHNICAL
+============================================================
+
+[1] INTERVIEWER
+Can you walk us through your hands-on experience with security frameworks such as NIST CSF, ISO 27001, or similar standards?
+
+[1] Ethan Patel
+I have some experience with NIST. I've read through the framework documentation and I know it has five core functions: Identify, Protect, Detect, Respond, and Recover. In my current role as a junior analyst I've been involved in some assessments but mostly in a supporting capacity rather than leading them.
+
+------------------------------------------------------------
+
+[2] INTERVIEWER
+Can you describe a penetration test or vulnerability assessment you personally led from scoping through to remediation reporting?
+
+[2] Ethan Patel
+I haven't personally led a full penetration test. I've assisted in running Nessus scans and compiling results into a report, but the scoping and remediation sign-off were handled by the senior analyst on the team. I'm hoping to grow into that responsibility.
+
+------------------------------------------------------------
+
+[3] INTERVIEWER
+How would you architect a defense-in-depth strategy for an organisation that handles sensitive PII under GDPR?
+
+[3] Ethan Patel
+I would put firewalls in place and make sure antivirus is installed on all endpoints. Encryption is also important for the data. I know GDPR requires companies to protect personal data but I'm still learning the specific technical controls that map directly to the regulation's articles.
+
+------------------------------------------------------------
+
+[4] INTERVIEWER
+Explain how you would detect and respond to a lateral movement attempt inside the network after an initial endpoint compromise.
+
+[4] Ethan Patel
+I would check the logs in our SIEM to see if there's unusual activity. Lateral movement usually involves things like pass-the-hash, but honestly detecting it in real time is something I haven't done myself. I would escalate to the senior team and follow whatever incident response playbook we have.
+
+------------------------------------------------------------
+
+[5] INTERVIEWER
+What experience do you have configuring and tuning SIEM systems such as Splunk or QRadar?
+
+[5] Ethan Patel
+I've used Splunk to run searches and dashboards, mostly ones that were already set up by others. I haven't written correlation rules from scratch or done any significant tuning. I can navigate the interface and do basic queries using SPL, but advanced tuning is new to me.
+
+------------------------------------------------------------
+
+[6] INTERVIEWER
+How do you approach secure SDLC, and what controls would you recommend integrating into a CI/CD pipeline?
+
+[6] Ethan Patel
+I know secure SDLC involves things like code review and testing before release. I would recommend doing security checks at various stages, like scanning for known vulnerabilities. I'm less familiar with the specific tools for CI/CD integration — I've heard of SAST and DAST but haven't implemented them myself.
+
+------------------------------------------------------------
+
+[7] INTERVIEWER
+Describe your experience with cloud security, specifically IAM policy design and misconfiguration detection in AWS or Azure.
+
+[7] Ethan Patel
+I have some basic AWS experience from personal projects. I know IAM stands for Identity and Access Management and that you should follow least-privilege principles. I haven't designed IAM policies professionally and I'm not very familiar with tools that detect misconfigurations, like Prisma Cloud or Scout Suite.
+
+------------------------------------------------------------
+
+[8] INTERVIEWER
+How would you handle a ransomware incident? Walk me through your response steps from detection to recovery.
+
+[8] Ethan Patel
+First I would alert the team and try to isolate the affected machines by disconnecting them from the network. Then I'd notify management. I know backups are important for recovery. Beyond those high-level steps I would rely on our incident response plan and escalate to more senior staff for the technical investigation and root cause analysis.
+
+------------------------------------------------------------
+
+[9] INTERVIEWER
+What do you know about threat intelligence platforms and how would you operationalise threat intel feeds in a SOC environment?
+
+[9] Ethan Patel
+I know threat intelligence involves collecting information about potential attackers and their methods. I've read about platforms like ThreatConnect but haven't worked with one professionally. Operationalising feeds is something I understand at a conceptual level — you'd ingest the indicators into a SIEM — but I don't have hands-on experience configuring that pipeline.
+
+------------------------------------------------------------
+
+[10] INTERVIEWER
+The role requires at least 8 years of cybersecurity experience with 3 years in a leadership capacity. Can you speak to how your 5 years and junior-level roles prepare you for this senior position?
+
+[10] Ethan Patel
+I know my experience is below the listed requirement. I've been growing quickly and I believe I can step up. I'm a fast learner and I'm very motivated to take on leadership responsibilities. I think with the right mentorship I could be effective in a senior role, even if it takes some time to fully develop.
+
+------------------------------------------------------------
+
+[11] INTERVIEWER
+Do you hold any certifications such as CISSP, CISM, or CRISC, and what is your plan if you do not?
+
+[11] Ethan Patel
+I don't currently hold any of those certifications. I'm planning to take the CompTIA Security+ exam in the next few months, and after that I'd like to work toward CISSP, though I understand I need more experience hours before I'm eligible to sit for it.
+
+------------------------------------------------------------
+
+[12] INTERVIEWER
+Is there anything else you'd like to share about your technical background that's relevant to this role?
+
+[12] Ethan Patel
+I'm passionate about cybersecurity and I work hard to keep learning. I may not have all the experience listed in the job description right now, but I believe my enthusiasm and commitment would make me a valuable addition to the team eventually. I appreciate the opportunity to interview for this position.
+
+------------------------------------------------------------

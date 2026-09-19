@@ -1,0 +1,52 @@
+**Job Title:** Middle Network Administrator
+
+**Job Summary:**
+
+We are seeking a skilled Network Administrator to join our IT team. The successful candidate will be responsible for the design, implementation, maintenance, and support of our organization's computer networks, including local area networks (LANs), wide area networks (WANs), and the Internet. The Network Administrator will work closely with our IT team to ensure the reliable and efficient operation of our network infrastructure, and will provide technical support to users to resolve network-related issues.
+
+**Key Responsibilities:**
+
+* Install, configure, and maintain computer networks, including LANs, WANs, and Internet connections
+* Design and implement network protocols, including TCP/IP, DNS, and DHCP
+* Set up and configure network devices, including routers, switches, firewalls, and network interface cards
+* Troubleshoot network issues, including connectivity problems, packet loss, and network congestion
+* Optimize network performance, including bandwidth allocation and Quality of Service (QoS)
+* Implement security measures to protect the network from unauthorized access and malicious activity
+* Monitor network performance and troubleshoot issues in real-time
+* Develop and implement network documentation, including network diagrams and configuration guides
+* Collaborate with our development team to ensure seamless integration of new applications and services with our network infrastructure
+* Provide technical support to users, including troubleshooting and resolving network-related issues
+* Stay up-to-date with the latest network technologies and trends, and apply this knowledge to inform our organization's network strategy
+* Assist with network upgrades, migrations, and changes, including hardware and software upgrades
+* Collaborate with external partners and vendors to ensure effective collaboration and communication
+
+**Requirements:**
+
+* Associate's or Bachelor's degree in Computer Science, Networking, or related field
+* 2-5 years of experience in network administration, with at least 1 year in a senior role
+* CompTIA A+ or equivalent certification preferred
+* Experience with network protocols, including TCP/IP, DNS, and DHCP
+* Experience with network devices, including routers, switches, firewalls, and network interface cards
+* Experience with network management software, including Nagios and SolarWinds
+* Experience with network security measures, including firewalls, VPNs, and intrusion detection systems
+* Strong analytical and problem-solving skills, with the ability to analyze complex network issues and develop effective solutions
+* Excellent communication and interpersonal skills, with the ability to collaborate with stakeholders and team members
+* Experience with agile development methodologies and version control systems
+* Strong leadership and management skills, with the ability to lead and motivate a team
+
+**Nice to Have:**
+
+* Experience with cloud networking, including AWS and Azure
+* Experience with network virtualization, including VMware and Hyper-V
+* Experience with network automation, including Ansible and Puppet
+* Experience with network monitoring, including Splunk and ELK Stack
+* Experience with network security, including encryption and authentication
+* Experience with network scripting, including PowerShell and Bash
+
+**Benefits:**
+
+* Comprehensive benefits package, including health insurance, retirement savings, and paid time off
+* Opportunities for professional growth and development, including training and education programs
+* Collaborative and dynamic work environment with a team of experienced IT professionals
+* Flexible work arrangements, including remote work options
+

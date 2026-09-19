@@ -1,0 +1,293 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hargus}
+      POSTGRES_USER: ${POSTGRES_USER:-hargus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hargus}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init-langfuse.sql:/docker-entrypoint-initdb.d/02-langfuse.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-hargus}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-hargus}
+      POSTGRES_SEEDS: postgres
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+        mc mb --ignore-existing local/hargus &&
+        mc mb --ignore-existing local/langfuse
+      "
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: on-failure
+
+  # Langfuse v3 (SDK v4+ requires server v3; old langfuse:2 returned 404 on ingestion).
+  langfuse-redis:
+    image: redis:7
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-langfuse-redis-dev}
+    command: >
+      redis-server --requirepass ${REDIS_PASSWORD:-langfuse-redis-dev} --maxmemory-policy noeviction
+    ports:
+      - "6380:6379"
+    volumes:
+      - langfuse_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse-dev-password}
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    ports:
+      - "8124:8123"
+      - "9010:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3030:3030"
+    environment: &langfuse-env
+      NEXTAUTH_URL: http://localhost:3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hargus}:${POSTGRES_PASSWORD:-hargus}@postgres:5432/langfuse
+      SALT: ${LANGFUSE_SALT:-dev-langfuse-salt-change-in-prod}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-clickhouse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-clickhouse-dev-password}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: ${REDIS_PASSWORD:-langfuse-redis-dev}
+      REDIS_TLS_ENABLED: "false"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: "false"
+      LANGFUSE_S3_BATCH_EXPORT_BUCKET: langfuse
+      LANGFUSE_S3_BATCH_EXPORT_PREFIX: exports/
+      LANGFUSE_S3_BATCH_EXPORT_REGION: auto
+      LANGFUSE_S3_BATCH_EXPORT_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_BATCH_EXPORT_EXTERNAL_ENDPOINT: http://localhost:9000
+      LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LANGFUSE_S3_BATCH_EXPORT_FORCE_PATH_STYLE: "true"
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    # restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-worker:
+        condition: service_started
+    ports:
+      - "3001:3000"
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-dev-secret-change-in-prod}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/public/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      HARGUS_ENVIRONMENT: docker
+      HARGUS_FRONTEND_ORIGIN: http://localhost:3000
+      HARGUS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hargus}:${POSTGRES_PASSWORD:-hargus}@postgres:5432/${POSTGRES_DB:-hargus}
+      HARGUS_TEMPORAL_ENABLED: "true"
+      HARGUS_TEMPORAL_SERVER_URL: temporal:7233
+      HARGUS_TEMPORAL_NAMESPACE: default
+      HARGUS_TEMPORAL_TASK_QUEUE: hargus-ai
+      HARGUS_STORAGE_BACKEND: s3
+      HARGUS_S3_BUCKET: hargus
+      HARGUS_S3_ENDPOINT_URL: http://minio:9000
+      HARGUS_AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      HARGUS_AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      HARGUS_AWS_REGION: us-east-1
+      HARGUS_LLM_PROVIDER: openai
+      HARGUS_LLM_MODEL: ${HARGUS_LLM_MODEL:-openai/gpt-oss-20b:free} #llama3.2:3b
+      HARGUS_OPENAI_API_KEY: ${HARGUS_OPENAI_API_KEY:-}
+      HARGUS_OPENAI_BASE_URL: ${HARGUS_OPENAI_BASE_URL:-https://openrouter.ai/api/v1}
+      HARGUS_EMBEDDING_PROVIDER: ollama
+      HARGUS_EMBEDDING_MODEL: nomic-embed-text
+      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      HARGUS_LANGFUSE_ENABLED: "true"
+      HARGUS_LANGFUSE_HOST: http://langfuse-web:3000
+      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cba83f33-ba8c-4ecf-a3dc-ba72135f8bd8}
+      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-4326cf16-44a6-478c-9c5d-a16f67b1a30c}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cba83f33-ba8c-4ecf-a3dc-ba72135f8bd8}
+      LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-4326cf16-44a6-478c-9c5d-a16f67b1a30c}
+    ports:
+      - "8000:8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "-m", "hargus_api.worker"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    environment:
+      HARGUS_ENVIRONMENT: docker
+      HARGUS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-hargus}:${POSTGRES_PASSWORD:-hargus}@postgres:5432/${POSTGRES_DB:-hargus}
+      HARGUS_TEMPORAL_ENABLED: "true"
+      HARGUS_TEMPORAL_SERVER_URL: temporal:7233
+      HARGUS_TEMPORAL_NAMESPACE: default
+      HARGUS_TEMPORAL_TASK_QUEUE: hargus-ai
+      HARGUS_STORAGE_BACKEND: s3
+      HARGUS_S3_BUCKET: hargus
+      HARGUS_S3_ENDPOINT_URL: http://minio:9000
+      HARGUS_AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      HARGUS_AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      HARGUS_AWS_REGION: us-east-1
+      HARGUS_LLM_PROVIDER: openai
+      HARGUS_LLM_MODEL: ${HARGUS_LLM_MODEL:-openai/gpt-oss-20b:free} #llama3.2:3b
+      HARGUS_OPENAI_API_KEY: ${HARGUS_OPENAI_API_KEY:-}
+      HARGUS_OPENAI_BASE_URL: ${HARGUS_OPENAI_BASE_URL:-https://openrouter.ai/api/v1}
+      HARGUS_EMBEDDING_PROVIDER: ollama
+      HARGUS_EMBEDDING_MODEL: nomic-embed-text
+      HARGUS_OLLAMA_BASE_URL: http://host.docker.internal:11434
+      HARGUS_LANGFUSE_ENABLED: "true"
+      HARGUS_LANGFUSE_HOST: http://langfuse-web:3000
+      HARGUS_LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cba83f33-ba8c-4ecf-a3dc-ba72135f8bd8}
+      HARGUS_LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-4326cf16-44a6-478c-9c5d-a16f67b1a30c}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LANGFUSE_PUBLIC_KEY: ${HARGUS_LANGFUSE_PUBLIC_KEY:-pk-lf-cba83f33-ba8c-4ecf-a3dc-ba72135f8bd8}
+      LANGFUSE_SECRET_KEY: ${HARGUS_LANGFUSE_SECRET_KEY:-sk-lf-4326cf16-44a6-478c-9c5d-a16f67b1a30c}
+
+volumes:
+  postgres_data:
+  minio_data:
+  ollama_data:
+  langfuse_redis_data:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:

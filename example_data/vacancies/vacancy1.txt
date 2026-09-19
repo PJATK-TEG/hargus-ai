@@ -1,0 +1,49 @@
+**Job Title:** Senior Cybersecurity Specialist
+
+**Job Summary:**
+
+We are seeking a highly experienced and skilled Senior Cybersecurity Specialist to join our Information Security team. The successful candidate will be responsible for leading the development and implementation of our organization's cybersecurity strategy, as well as providing expert guidance and support to our IT staff to ensure the security and integrity of our systems, networks, and data. The Senior Cybersecurity Specialist will work closely with our leadership team to identify and mitigate cybersecurity risks, ensuring the protection of our organization's assets and reputation.
+
+**Key Responsibilities:**
+
+* Develop and implement comprehensive cybersecurity strategies and policies to protect the organization's assets and data
+* Conduct regular risk assessments and vulnerability assessments to identify potential security threats
+* Design and implement robust security controls, including firewalls, intrusion detection and prevention systems, and antivirus software
+* Collaborate with our development team to ensure secure coding practices and secure software development lifecycle (SDLC) processes
+* Develop and maintain incident response plans and procedures to respond to cybersecurity incidents
+* Provide training and awareness programs for employees on cybersecurity best practices and phishing prevention
+* Lead the investigation and analysis of cybersecurity incidents and provide recommendations for remediation and prevention
+* Collaborate with external security vendors and partners to evaluate and implement new security technologies and solutions
+* Stay up-to-date with the latest cybersecurity threats, trends, and technologies, and apply this knowledge to inform our organization's cybersecurity strategy
+* Develop and maintain a comprehensive cybersecurity program, including security awareness training, security incident response, and disaster recovery planning
+* Collaborate with the IT team to ensure that all security measures are properly implemented and monitored
+* Develop and maintain relationships with external partners and stakeholders to ensure effective collaboration and communication
+
+**Requirements:**
+
+* Bachelor's degree in Computer Science, Information Assurance, or related field
+* Minimum 8 years of experience in cybersecurity, with at least 3 years in a senior leadership or management role
+* CISSP, CISM, or CRISC certification preferred
+* Proven experience in developing and implementing comprehensive cybersecurity strategies and policies
+* Experience with security frameworks, such as NIST Cybersecurity Framework, and compliance frameworks, such as GDPR and HIPAA
+* Strong knowledge of cybersecurity threats, including malware, phishing, and ransomware
+* Experience with security technologies, including firewalls, intrusion detection and prevention systems, antivirus software, and encryption
+* Strong analytical and problem-solving skills, with the ability to analyze complex cybersecurity issues and develop effective solutions
+* Excellent communication and interpersonal skills, with the ability to collaborate with stakeholders and team members
+* Experience with agile development methodologies and secure software development lifecycle (SDLC) practices
+* Strong leadership and management skills, with the ability to lead and motivate a team
+
+**Nice to Have:**
+
+* Experience with cloud security, including AWS and Azure
+* Experience with security information and event management (SIEM) systems
+* Experience with threat intelligence and threat hunting
+* Experience with penetration testing and vulnerability assessment
+* Experience with incident response and disaster recovery planning
+
+**Benefits:**
+
+* Comprehensive benefits package, including health insurance, retirement savings, and paid time off
+* Opportunities for professional growth and development, including training and education programs
+* Collaborative and dynamic work environment with a team of experienced cybersecurity professionals
+* Flexible work arrangements, including remote work options

@@ -1,0 +1,51 @@
+**Job Title:** Senior DevOps/Cloud Engineer
+
+**Job Summary:**
+
+We are seeking a highly skilled Senior DevOps/Cloud Engineer to join our IT team. The successful candidate will be responsible for leading the design, implementation, and maintenance of our organization's cloud infrastructure, as well as developing and implementing automated testing and deployment processes to ensure the reliability and scalability of our systems. The Senior DevOps/Cloud Engineer will work closely with our development team to ensure seamless integration of new applications and services with our cloud infrastructure, and will provide technical leadership and guidance to junior engineers and team members.
+
+**Key Responsibilities:**
+
+* Design, implement, and maintain our organization's cloud infrastructure, including Amazon Web Services (AWS), Microsoft Azure, or Google Cloud Platform (GCP)
+* Develop and implement automated testing and deployment processes using tools such as Jenkins, Git, and Docker
+* Collaborate with the development team to ensure seamless integration of new applications and services with our cloud infrastructure
+* Develop and maintain automated testing frameworks using tools such as Selenium and Appium
+* Implement continuous integration and continuous deployment (CI/CD) pipelines using tools such as Jenkins and GitLab CI/CD
+* Develop and maintain monitoring and logging tools to ensure the reliability and scalability of our systems
+* Implement security measures to protect our cloud infrastructure from unauthorized access and malicious activity
+* Develop and maintain automated patching and vulnerability management processes using tools such as Ansible and SaltStack
+* Collaborate with external partners and vendors to ensure effective collaboration and communication
+* Stay up-to-date with the latest cloud technologies and trends, and apply this knowledge to inform our organization's cloud strategy
+* Provide technical leadership and guidance to junior engineers and team members
+* Develop and maintain technical documentation, including cloud architecture diagrams and deployment guides
+
+**Requirements:**
+
+* Bachelor's degree in Computer Science, Information Technology, or related field
+* 5-7 years of experience in DevOps and cloud engineering, with at least 3 years in a senior role
+* Experience with cloud providers such as AWS, Azure, or GCP
+* Experience with containerization using Docker
+* Experience with orchestration using Kubernetes
+* Experience with continuous integration and continuous deployment (CI/CD) pipelines
+* Experience with automated testing and deployment using tools such as Jenkins, Git, and Docker
+* Experience with security measures, including firewalls, VPNs, and intrusion detection systems
+* Strong analytical and problem-solving skills, with the ability to analyze complex cloud issues and develop effective solutions
+* Excellent communication and interpersonal skills, with the ability to collaborate with stakeholders and team members
+* Experience with agile development methodologies and version control systems
+* Experience with automation tools such as Ansible, SaltStack, and Puppet
+
+**Nice to Have:**
+
+* Experience with serverless computing using AWS Lambda or Azure Functions
+* Experience with machine learning and artificial intelligence using cloud-based services
+* Experience with data analytics and business intelligence using cloud-based services
+* Experience with DevOps tools such as CircleCI, Travis CI, and Jenkins
+* Experience with cloud-based security services such as AWS IAM, Azure Active Directory, and GCP Identity and Access Management
+* Experience with cloud-based backup and disaster recovery services such as AWS S3, Azure Blob Storage, and GCP Cloud Storage
+
+**Benefits:**
+
+* Comprehensive benefits package, including health insurance, retirement savings, and paid time off
+* Opportunities for professional growth and development, including training and education programs
+* Collaborative and dynamic work environment with a team of experienced IT professionals
+* Flexible work arrangements, including remote work options

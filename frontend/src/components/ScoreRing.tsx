@@ -6,16 +6,17 @@ interface ScoreRingProps {
   strokeWidth?: number
   className?: string
   label?: string
+  description?: string
 }
 
-export default function ScoreRing({ score, size = 80, strokeWidth = 6, className = '', label }: ScoreRingProps) {
+export default function ScoreRing({ score, size = 80, strokeWidth = 6, className = '', label, description }: ScoreRingProps) {
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (score / 100) * circumference
   const color = getScoreColor(score)
 
   return (
-    <div className={`relative inline-flex flex-col items-center gap-1.5 ${className}`}>
+    <div className={`relative inline-flex flex-col items-center gap-1.5 ${className}${description ? ' cursor-help' : ''}`} title={description}>
       <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2}

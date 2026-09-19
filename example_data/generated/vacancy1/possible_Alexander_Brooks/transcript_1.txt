@@ -1,0 +1,104 @@
+INTERVIEW TRANSCRIPT
+============================================================
+Candidate:      Alexander Brooks
+Position:       Senior Cybersecurity Specialist
+Interviewer:    Emily Chen
+Date:           2026-05-18
+Interview Type: TECHNICAL
+============================================================
+
+[1] INTERVIEWER
+Walk me through how you would perform a risk assessment for an organisation migrating from on-premise infrastructure to AWS.
+
+[1] Alexander Brooks
+I'd start with an asset inventory to understand what data and systems are moving and their sensitivity levels. Then I'd map those assets against the AWS Shared Responsibility Model to understand what security controls shift to us versus what AWS manages. From there I'd conduct a threat modelling exercise — something like STRIDE — to identify threats specific to the cloud environment, such as misconfigured S3 buckets or overly permissive IAM roles. I'd produce a risk register and prioritise findings by likelihood and impact.
+
+------------------------------------------------------------
+
+[2] INTERVIEWER
+Describe your hands-on experience with penetration testing. What tools and methodologies have you used?
+
+[2] Alexander Brooks
+I've conducted penetration tests using the PTES and OWASP Testing Guide methodologies. For external assessments I've used tools like Nmap for reconnaissance, Metasploit for exploitation, and Burp Suite for web application testing. I've also done internal assessments using BloodHound for Active Directory enumeration and Impacket for credential attacks. I document findings in CVSS-scored reports and work with development teams on remediation timelines.
+
+------------------------------------------------------------
+
+[3] INTERVIEWER
+How have you used SIEM tools in practice? Can you give an example of a detection rule you built?
+
+[3] Alexander Brooks
+I've worked primarily with Splunk. One rule I built detected brute-force attempts against our VPN by alerting when more than ten failed authentication events from a single IP occurred within five minutes. I wrote the correlation rule in SPL, tuned the thresholds based on baseline traffic data, and tied the alert to a Jira ticket workflow so incidents were automatically created for the SOC team to investigate.
+
+------------------------------------------------------------
+
+[4] INTERVIEWER
+How would you design IAM policies in AWS to enforce least privilege for a team of developers?
+
+[4] Alexander Brooks
+I would start by defining permission boundaries aligned with each developer's role — for example, separating read-only access for those in QA from write access for engineers working on specific services. I'd use IAM roles rather than long-lived access keys, enforce MFA for console access, apply service control policies at the AWS Organisations level to prevent privilege escalation, and use Access Analyzer to continuously audit effective permissions and flag over-permissive policies.
+
+------------------------------------------------------------
+
+[5] INTERVIEWER
+Explain how you would detect and contain lateral movement following an initial endpoint compromise.
+
+[5] Alexander Brooks
+I'd rely on a combination of EDR telemetry and network traffic analysis. For detection, I'd look for abnormal authentication events — pass-the-hash or Kerberoasting attempts — unusual SMB traffic between workstations, and new scheduled tasks or services created on endpoints. Once detected, I'd isolate the compromised host via the EDR's network quarantine feature, revoke any credentials used by that machine, and begin forensic collection on the host while the rest of the IR process runs in parallel.
+
+------------------------------------------------------------
+
+[6] INTERVIEWER
+Describe your experience implementing security within a CI/CD pipeline.
+
+[6] Alexander Brooks
+I've integrated several security checkpoints into GitLab CI pipelines. Pre-commit, I enforced secret scanning using gitleaks. In the build stage, I added SolidSAST for static analysis and dependency scanning for known CVEs in libraries. In the deployment stage, I ran DAST against a staging environment using OWASP ZAP. I also integrated container image scanning using Trivy before images are pushed to the registry. The results gate the pipeline — critical findings block deployment until resolved.
+
+------------------------------------------------------------
+
+[7] INTERVIEWER
+What is your experience with compliance frameworks such as GDPR and HIPAA, and how have you translated those requirements into technical controls?
+
+[7] Alexander Brooks
+I led a GDPR readiness project at my previous organisation. I mapped Articles 25 and 32 to concrete technical controls — pseudonymisation of PII in databases, encryption at rest using AES-256, and data minimisation enforced through application-level access controls. I also implemented audit logging so we could demonstrate accountability to the supervisory authority. For HIPAA at a healthcare client, I ensured ePHI was encrypted in transit using TLS 1.2+, implemented role-based access controls in the EHR system, and worked with legal on business associate agreements.
+
+------------------------------------------------------------
+
+[8] INTERVIEWER
+How would you approach building a threat intelligence programme from scratch?
+
+[8] Alexander Brooks
+I'd start by defining the intelligence requirements — what threats are most relevant to the organisation's industry and attack surface? Then I'd select a mix of open-source feeds (AlienVault OTX, MISP communities) and commercial threat intel subscriptions based on budget. I'd integrate those feeds into the SIEM and firewall blocklists. I'd also establish a process for internal threat hunting based on MITRE ATT&CK TTPs relevant to our sector, and produce regular threat briefings for leadership to ensure intelligence is actionable at a strategic level.
+
+------------------------------------------------------------
+
+[9] INTERVIEWER
+Describe a technically complex incident you investigated. What was the root cause and what were your findings?
+
+[9] Alexander Brooks
+We experienced a cloud misconfiguration incident where an S3 bucket containing customer records was inadvertently made public by a developer who set the bucket policy to allow all principals. I was notified by our cloud security posture tool. I immediately remediated the bucket policy, captured CloudTrail logs to establish a timeline, and determined that no external party had accessed the objects — the bucket had been public for approximately four hours. I produced a detailed report including the timeline, affected data scope, and recommendations including blocking public access at the account level and implementing a policy-as-code check in the Terraform templates to prevent recurrence.
+
+------------------------------------------------------------
+
+[10] INTERVIEWER
+What would you prioritise in your first 90 days as Senior Cybersecurity Specialist here?
+
+[10] Alexander Brooks
+In the first 30 days I'd focus on understanding the existing security posture — reviewing current controls, policies, and any prior audit findings. Days 30 to 60 I'd conduct a gap analysis against the applicable compliance frameworks and produce a prioritised remediation roadmap. In days 60 to 90 I'd begin executing on the highest-priority gaps, establish or refine incident response procedures, and start building relationships with the development and infrastructure teams to embed security earlier in their processes.
+
+------------------------------------------------------------
+
+[11] INTERVIEWER
+Do you have any certifications relevant to this role?
+
+[11] Alexander Brooks
+I hold the OSCP, which is heavily hands-on and covers penetration testing techniques in depth. I also have AWS Certified Security Specialty and CompTIA CySA+. I'm currently studying for the CISSP — I have the required experience hours and plan to sit the exam in the next six months.
+
+------------------------------------------------------------
+
+[12] INTERVIEWER
+Any questions for us on the technical side of the role?
+
+[12] Alexander Brooks
+Yes — I'd be interested to know the current state of your SIEM implementation and whether there's scope to expand detection coverage, and I'd also like to understand the relationship between the security team and the development organisation in terms of how shift-left security initiatives are currently working.
+
+------------------------------------------------------------

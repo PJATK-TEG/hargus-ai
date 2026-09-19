@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>{{ cv.name }} — CV</title>
+  <style>
+    @page { size: A4; margin: 1.8cm 2cm; }
+
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 10.5pt;
+      color: #1a1a2e;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* ── Header ───────────────────────────────────────────── */
+    .header {
+      border-bottom: 3px solid #0f3460;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+    .header h1 {
+      font-size: 22pt;
+      color: #0f3460;
+      margin: 0 0 6px 0;
+    }
+    .contact {
+      font-size: 9pt;
+      color: #555;
+    }
+    .contact span {
+      margin-right: 18px;
+    }
+
+    /* ── Tier badge ────────────────────────────────────────── */
+    .tier-badge {
+      float: right;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 8pt;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .strong  { background: #27ae60; color: white; }
+    .possible { background: #f39c12; color: white; }
+    .weak    { background: #e74c3c; color: white; }
+
+    /* ── Section headings ──────────────────────────────────── */
+    h2 {
+      font-size: 11.5pt;
+      color: #0f3460;
+      border-left: 4px solid #e94560;
+      padding-left: 8px;
+      margin: 20px 0 8px 0;
+    }
+
+    /* ── Summary ───────────────────────────────────────────── */
+    .summary {
+      font-style: italic;
+      color: #444;
+      margin: 0 0 6px 0;
+    }
+
+    /* ── Experience ────────────────────────────────────────── */
+    .exp-entry {
+      margin-bottom: 12px;
+    }
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .exp-role {
+      font-weight: bold;
+    }
+    .exp-company {
+      color: #0f3460;
+      margin-left: 6px;
+    }
+    .exp-dates {
+      font-size: 9pt;
+      color: #777;
+      white-space: nowrap;
+    }
+    .exp-desc {
+      margin-top: 3px;
+      font-size: 9.5pt;
+      color: #333;
+    }
+
+    /* ── Education ─────────────────────────────────────────── */
+    .edu-entry {
+      margin-bottom: 6px;
+    }
+    .edu-degree {
+      font-weight: bold;
+    }
+    .edu-inst {
+      color: #555;
+    }
+    .edu-year {
+      font-size: 9pt;
+      color: #777;
+    }
+
+    /* ── Skills ────────────────────────────────────────────── */
+    .skills-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .skill-tag {
+      background: #e8f0fe;
+      color: #1a1a2e;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 9pt;
+    }
+
+    /* ── Certifications ────────────────────────────────────── */
+    .cert-list {
+      list-style: none;
+      padding: 0;
+      margin: 4px 0;
+    }
+    .cert-list li {
+      padding: 2px 0;
+    }
+    .cert-list li::before {
+      content: "✓ ";
+      color: #27ae60;
+      font-weight: bold;
+    }
+
+    /* ── Footer ────────────────────────────────────────────── */
+    .footer {
+      position: fixed;
+      bottom: 1cm;
+      left: 2cm;
+      right: 2cm;
+      text-align: center;
+      font-size: 7.5pt;
+      color: #bbb;
+      border-top: 1px solid #eee;
+      padding-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>{{ cv.name }}</h1>
+  <div class="contact">
+    <span>{{ cv.email }}</span>
+    <span>{{ cv.phone }}</span>
+    <span>{{ cv.location }}</span>
+  </div>
+</div>
+
+{% if cv.summary %}
+<p class="summary">{{ cv.summary }}</p>
+{% endif %}
+
+{% if cv.experience %}
+<h2>Experience</h2>
+{% for exp in cv.experience %}
+<div class="exp-entry">
+  <div class="exp-header">
+    <div>
+      <span class="exp-role">{{ exp.role }}</span>
+      <span class="exp-company">· {{ exp.company }}</span>
+    </div>
+    <span class="exp-dates">{{ exp.from_year }} – {{ exp.to_year }}</span>
+  </div>
+  <div class="exp-desc">{{ exp.description }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if cv.education %}
+<h2>Education</h2>
+{% for edu in cv.education %}
+<div class="edu-entry">
+  <span class="edu-degree">{{ edu.degree }} in {{ edu.field }}</span>
+  —
+  <span class="edu-inst">{{ edu.institution }}</span>
+  <span class="edu-year">({{ edu.year }})</span>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if cv.skills %}
+<h2>Skills</h2>
+<div class="skills-list">
+  {% for skill in cv.skills %}
+  <span class="skill-tag">{{ skill }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if cv.certifications %}
+<h2>Certifications</h2>
+<ul class="cert-list">
+  {% for cert in cv.certifications %}
+  <li>{{ cert }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<!-- <div class="footer">
+  Synthetic CV · Hargus AI test data pipeline · {{ tier | upper }} tier
+</div> -->
+
+</body>
+</html>

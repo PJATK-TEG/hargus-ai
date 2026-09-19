@@ -1,0 +1,104 @@
+INTERVIEW TRANSCRIPT
+============================================================
+Candidate:      Alexander Brooks
+Position:       Senior Cybersecurity Specialist
+Interviewer:    Emily Chen
+Date:           2026-05-18
+Interview Type: BEHAVIOURAL
+============================================================
+
+[1] INTERVIEWER
+Tell me about yourself and what motivates you to work in cybersecurity.
+
+[1] Alexander Brooks
+I've been in cybersecurity for about seven years. My motivation really comes from the cat-and-mouse nature of the field — attackers are always evolving and I find it genuinely engaging to stay ahead of them. I started in penetration testing, moved into cloud security, and over the last two years I've been working in a hybrid role that includes both offensive and defensive responsibilities. I enjoy the breadth of the discipline.
+
+------------------------------------------------------------
+
+[2] INTERVIEWER
+Describe a time you had to influence senior leadership on a security investment decision they were initially reluctant to make.
+
+[2] Alexander Brooks
+Leadership at my last organisation was hesitant to approve budget for a cloud security posture management tool because they saw it as a nice-to-have rather than a necessity. I prepared a business case that quantified the risk using data from a recent misconfiguration incident we'd had, estimated the potential cost of a breach scenario using Ponemon Institute benchmarks, and showed how the tool's cost was a fraction of one incident response engagement. They approved the budget the following quarter. The tool subsequently caught two critical misconfigurations before they were exploited.
+
+------------------------------------------------------------
+
+[3] INTERVIEWER
+Tell me about a time you had to work across teams to achieve a security outcome. What was challenging about it?
+
+[3] Alexander Brooks
+I led a cross-functional project to implement MFA across all corporate systems. The challenge was that the engineering team felt the implementation timeline I proposed was too aggressive given their existing sprint commitments. I worked with the engineering manager to identify a phased approach that protected the highest-risk systems first while giving development more time to plan the broader rollout. It required a lot of negotiation and compromise but the project completed successfully and engineering felt they were treated as partners rather than just being handed a mandate.
+
+------------------------------------------------------------
+
+[4] INTERVIEWER
+Give me an example of when a security project you led didn't go as planned. What did you learn?
+
+[4] Alexander Brooks
+I underestimated the change management effort involved in a password policy rollout. I planned the technical implementation well but didn't budget enough time for user communications and training. On rollout day we were flooded with helpdesk calls from users who were locked out because they didn't understand the new complexity requirements. I put out an emergency communication, worked with the helpdesk to triage calls, and implemented a grace period. The lesson I took away was that the human side of security changes often requires as much planning as the technical side.
+
+------------------------------------------------------------
+
+[5] INTERVIEWER
+Describe a situation where you had to deliver difficult feedback or escalate a concern about a colleague's security practices.
+
+[5] Alexander Brooks
+A senior developer on a project I was reviewing had a habit of hardcoding API keys in source code and then removing them before committing — relying on that manual step rather than a vault solution. I raised it directly with him first, explaining the risk of human error in that process. He was initially defensive. I brought in concrete examples of breaches caused by the same practice and offered to help set up HashiCorp Vault for the team. Once he saw it as support rather than criticism he became cooperative, and we subsequently onboarded the whole engineering org to the vault.
+
+------------------------------------------------------------
+
+[6] INTERVIEWER
+Tell me about a time you had to make a fast decision during a security incident with incomplete information.
+
+[6] Alexander Brooks
+During an incident we suspected a threat actor had compromised a service account with broad Active Directory privileges. We didn't yet have confirmation of the blast radius, but waiting for full forensics would have meant leaving the account active for hours longer. I made the call to disable the account immediately, accepting that it might cause some service disruption, and informed the business owner so they could manage any operational impact. The service disruption turned out to be minimal and we contained the threat. Post-incident review confirmed the decision was the right one.
+
+------------------------------------------------------------
+
+[7] INTERVIEWER
+How do you approach building a security-aware culture within an organisation?
+
+[7] Alexander Brooks
+I believe security culture is built through repeated, low-friction touchpoints rather than annual mandatory training. I've introduced things like bite-sized monthly security tips distributed via Slack, a phishing simulation programme with constructive rather than punitive follow-up, and a bug bounty-lite programme for internal employees to report suspicious emails. I've also worked to build personal credibility with non-security teams by being responsive and helpful when they reach out, which makes people more likely to consult security early rather than treating us as the department of "no."
+
+------------------------------------------------------------
+
+[8] INTERVIEWER
+Describe a time you had to manage competing priorities and how you decided what to focus on.
+
+[8] Alexander Brooks
+There was a period where I was simultaneously managing three active threads: a critical vulnerability remediation, an upcoming audit preparation, and onboarding a new SIEM vendor. I used a simple framework — ranking each by risk impact and time-sensitivity — and determined that the vulnerability remediation had to come first because it represented an open exposure. I delegated portions of the audit preparation to a junior analyst and negotiated a two-week extension with the SIEM vendor on our kickoff meeting. It wasn't a perfect outcome for any of the three workstreams but it was the best risk-adjusted allocation of attention.
+
+------------------------------------------------------------
+
+[9] INTERVIEWER
+Where do you see your career heading and how does this role fit into that trajectory?
+
+[9] Alexander Brooks
+My goal is to move into a CISO or head of security function within the next four to five years. This role appeals to me because it offers both technical depth — which I want to continue exercising — and the opportunity to build and lead a programme, which is the experience I need to prepare for that strategic level. I want to grow my leadership track record while staying close enough to the technical work to remain credible with both engineering teams and executive stakeholders.
+
+------------------------------------------------------------
+
+[10] INTERVIEWER
+Tell me about a professional relationship that you found challenging to navigate and what you did about it.
+
+[10] Alexander Brooks
+I had a challenging relationship with the head of IT operations at a previous organisation who saw the security function as an obstacle to delivery speed. Every security requirement I raised was framed by him as a blocker. I made a deliberate effort to understand his priorities and pressures, sat in on his team's sprint reviews, and started framing security requirements in terms of uptime and availability risks rather than compliance obligations. Over about six months the dynamic shifted considerably — he started bringing security into project conversations earlier, which is ultimately what I'd been trying to achieve.
+
+------------------------------------------------------------
+
+[11] INTERVIEWER
+What do you consider your most significant professional achievement in cybersecurity so far?
+
+[11] Alexander Brooks
+Building a vulnerability management programme from scratch at my previous organisation. When I joined there was no formal process — critical patches sat unaddressed for months and there was no visibility into the overall risk posture. Within a year I had a fully operational programme with defined SLAs by severity, integration between the scanning tool and the ticketing system, and an executive dashboard. Mean time to remediate critical vulnerabilities went from over 90 days to under 14. That measurable improvement in a concrete risk metric is what I'm most proud of.
+
+------------------------------------------------------------
+
+[12] INTERVIEWER
+Do you have any questions for us about the team or the organisation?
+
+[12] Alexander Brooks
+I'd like to understand how security is currently perceived within the broader business — whether it's seen as a strategic function or primarily as a compliance checkbox. And I'm curious what the biggest cultural or organisational challenge is that the incoming senior specialist will need to navigate.
+
+------------------------------------------------------------

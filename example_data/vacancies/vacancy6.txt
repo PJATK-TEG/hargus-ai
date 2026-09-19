@@ -1,0 +1,61 @@
+**Job Title:** Middle Java Backend Software Engineer
+
+**Job Summary:**
+
+We are seeking a highly skilled and experienced Java backend software engineer to join our team. The successful candidate will be responsible for designing, developing, and maintaining our organization's Java-based backend systems, including APIs, microservices, and databases. The Middle Java Backend Software Engineer will work closely with our development team to ensure the delivery of high-quality software solutions that meet our business requirements.
+
+**Key Responsibilities:**
+
+* Design, develop, and maintain Java-based backend systems, including APIs, microservices, and databases
+* Collaborate with the development team to identify and prioritize project requirements and deliver software solutions that meet business needs
+* Write high-quality, efficient, and well-documented Java code to meet project requirements
+* Troubleshoot and resolve complex technical issues and bugs
+* Participate in code reviews and contribute to the improvement of the codebase
+* Collaborate with the QA team to ensure the delivery of high-quality software solutions
+* Stay up-to-date with the latest Java technologies and trends, and apply this knowledge to inform our organization's Java strategy
+* Participate in design reviews and contribute to the development of our organization's technical architecture
+* Collaborate with the DevOps team to ensure the smooth operation of our backend systems
+* Develop and maintain automated testing and deployment scripts using tools such as Jenkins, GitLab CI/CD, and Docker
+
+**Requirements:**
+
+* Bachelor's degree in Computer Science, Information Technology, or related field
+* 3-5 years of experience in Java-based backend development, with at least 2 years in a senior role
+* Proficiency in Java 8 or higher, including Spring Boot, Hibernate, and Java EE
+* Strong understanding of Java architecture, including MVC, DTO, and RESTful APIs
+* Experience with Java-based databases, including MySQL, Oracle, and PostgreSQL
+* Familiarity with Java-based frameworks, including Spring Framework, Hibernate, and Vaadin
+* Experience with Agile development methodologies and version control systems, including Git
+* Strong analytical and problem-solving skills, with the ability to analyze complex technical issues and develop effective solutions
+* Excellent communication and interpersonal skills, with the ability to collaborate with stakeholders and team members
+* Ability to work independently and as part of a team
+* Strong attention to detail and ability to meet deadlines
+
+**Nice to Have:**
+
+* Experience with cloud-based Java platforms, including AWS, Google Cloud, or Microsoft Azure
+* Experience with containerization using Docker
+* Experience with automation using tools such as Ansible, Puppet, or Chef
+* Experience with Java-based testing frameworks, including JUnit, TestNG, and Cucumber
+* Familiarity with Java-based security frameworks, including OAuth, OpenID Connect, and JWT
+
+**Skills:**
+
+* Java 8 or higher
+* Spring Boot
+* Hibernate
+* Java EE
+* MySQL, Oracle, or PostgreSQL
+* Agile development methodologies
+* Git
+* Docker
+* Ansible, Puppet, or Chef
+* JUnit, TestNG, or Cucumber
+* OAuth, OpenID Connect, or JWT
+
+**Benefits:**
+
+* Comprehensive benefits package, including health insurance, retirement savings, and paid time off
+* Opportunities for professional growth and development, including training and education programs
+* Collaborative and dynamic work environment with a team of experienced software engineers
+* Flexible work arrangements, including remote work options
